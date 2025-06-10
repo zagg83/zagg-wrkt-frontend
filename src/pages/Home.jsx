@@ -1,13 +1,13 @@
-import React from 'react'
-import styled from 'styled-components'
-import Header from '../components/Header'
-import WeeklyProgress from '../components/WeeklyProgress'
-import MenuGrid from '../components/MenuGrid'
+import React from 'react';
+import styled from 'styled-components';
+import Header from '../components/Header';
+import WeeklyProgress from '../components/WeeklyProgress';
+import MenuGrid from '../components/MenuGrid';
 
 const HomeContainer = styled.div`
   background-color: #121212;
   padding-bottom: 80px; // Space for bottom nav
-`
+`;
 
 const Home = () => {
   return (
@@ -16,7 +16,7 @@ const Home = () => {
       <WeeklyProgress />
       <MenuGrid />
     </HomeContainer>
-  )
-}
+  );
+};
 
-export default Home
+export default Home;

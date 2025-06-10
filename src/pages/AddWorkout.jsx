@@ -1,6 +1,8 @@
 import { jwtDecode } from 'jwt-decode';
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useUser } from '../context/UserContext';
+import determineColor from '../util/determineColor';
 
 const Container = styled.div`
   background-color: #121212;
@@ -42,7 +44,7 @@ const AddedExercises = styled.div`
 `;
 
 const ExerciseTag = styled.div`
-  background-color: #ffd700;
+  background-color: ${props => props.color};
   color: black;
   padding: 0.5rem 1rem;
   border-radius: 20px;
@@ -259,7 +261,8 @@ const AddWorkout = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [addedExercises, setAddedExercises] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
-
+  const { user } = useUser();
+  const color = determineColor(user);
   const categories = [
     { name: 'Upper Body', value: 'UPPER_BODY', icon: '💪', color: '#4CAF50' },
     { name: 'Lower Body', value: 'LOWER_BODY', icon: '🦵', color: '#F44336' },
@@ -350,7 +353,7 @@ const AddWorkout = () => {
             <SectionTitle>Exercises added:</SectionTitle>
             <AddedExercises>
               {addedExercises.map((exercise, index) => (
-                <ExerciseTag key={index}>
+                <ExerciseTag key={index} color={color}>
                   {exercise.name}
                   <button onClick={() => handleExerciseClick(exercise)}>
                     ×

@@ -1,5 +1,7 @@
-import React from 'react'
-import styled from 'styled-components'
+import React from 'react';
+import styled from 'styled-components';
+import { useUser } from '../context/UserContext';
+import determineColor from '../util/determineColor';
 
 const ProgressContainer = styled.div`
   background-color: #1e1e1e;
@@ -19,11 +21,11 @@ const ProgressContainer = styled.div`
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 215, 0, 0.5),
+      ${props => props.color},
       transparent
     );
   }
-`
+`;
 
 const Title = styled.h2`
   font-size: 1.2rem;
@@ -34,12 +36,12 @@ const Title = styled.h2`
 
   &::after {
     content: '•';
-    color: #ffd700;
+    color: ${props => props.color};
     font-size: 2.5rem;
     line-height: 0;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    text-shadow: 0 0 10px ${props => props.color};
   }
-`
+`;
 
 const ChartContainer = styled.div`
   height: 150px;
@@ -47,7 +49,7 @@ const ChartContainer = styled.div`
   align-items: flex-end;
   gap: 8px;
   padding: 1rem 0;
-`
+`;
 
 const Bar = styled.div`
   flex: 1;
@@ -55,10 +57,11 @@ const Bar = styled.div`
   height: ${props => props.height}%;
   border-radius: 4px;
   transition: height 0.3s ease;
-`
+`;
 
 const WeeklyProgress = () => {
-  // This would come from your state management
+  const { user } = useUser();
+  const color = determineColor(user);
   const progressData = [
     { height: 30, color: '#E6A0FF' },
     { height: 20, color: '#E6A0FF' },
@@ -67,18 +70,18 @@ const WeeklyProgress = () => {
     { height: 80, color: '#90EE90' },
     { height: 90, color: '#90EE90' },
     { height: 85, color: '#90EE90' },
-  ]
+  ];
 
   return (
-    <ProgressContainer>
-      <Title>Weekly progress</Title>
+    <ProgressContainer color={color}>
+      <Title color={color}>Weekly progress</Title>
       <ChartContainer>
         {progressData.map((data, index) => (
           <Bar key={index} height={data.height} color={data.color} />
         ))}
       </ChartContainer>
     </ProgressContainer>
-  )
-}
+  );
+};
 
-export default WeeklyProgress
+export default WeeklyProgress;
