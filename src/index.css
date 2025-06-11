@@ -15,7 +15,7 @@ body {
 }
 
 #root {
-  min-height: 100vh; /* Gold inset box shadow for the body */
+  min-height: 100vh;
 }
 
 button {

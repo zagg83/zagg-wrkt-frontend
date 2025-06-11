@@ -40,7 +40,7 @@ const NavItem = styled(Link)`
 
 const AddButton = styled(Link)`
   text-decoration: none;
-  background-color: ${props => props.color};
+  background: ${props => props.colors.gradient};
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -48,17 +48,20 @@ const AddButton = styled(Link)`
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 0 8px 2px rgba(255, 215, 0, 0.3),
-    0 0 2px 0.5px ${props => props.color};
-  color: #222;
+    0 0 8px 2px ${props => props.colors.main}40,
+    0 0 2px 0.5px ${props => props.colors.secondary};
+  color: white;
   font-weight: bold;
   font-size: 1.2rem;
   transition:
     background-color 0.15s ease,
-    transform 0.15s ease;
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
   &:hover {
-    background-color: ${props => props.color}88;
     transform: scale(1.1);
+    box-shadow:
+      0 0 12px 4px ${props => props.colors.main}60,
+      0 0 4px 1px ${props => props.colors.secondary};
   }
 `;
 
@@ -72,17 +75,17 @@ const IconWrapper = styled.div`
 
 const BottomNav = () => {
   const { user } = useUser();
-  const color = determineColor(user);
+  const colors = determineColor(user);
   return (
     <NavWrapper>
       <Nav>
-        <NavItem>
+        <NavItem to="/">
           <IconWrapper>🏠</IconWrapper>
         </NavItem>
-        <AddButton to="/add-workout" color={color}>
+        <AddButton to="/add-workout" colors={colors}>
           <IconWrapper>+</IconWrapper>
         </AddButton>
-        <NavItem>
+        <NavItem to="/templates">
           <IconWrapper>📋</IconWrapper>
         </NavItem>
       </Nav>

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useUser } from '../context/UserContext';
 import determineColor from '../util/determineColor';
+import { useError } from '../context/ErrorContext';
 
 const Container = styled.div`
   background-color: #121212;
@@ -44,19 +45,56 @@ const AddedExercises = styled.div`
 `;
 
 const ExerciseTag = styled.div`
-  background-color: ${props => props.color};
-  color: black;
+  background: ${props => props.colors.gradient};
+  color: white;
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-size: 0.9rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  box-shadow: 0 2px 8px ${props => props.colors.main}40;
+  border: 1px solid ${props => props.colors.secondary};
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      to bottom right,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.05) 40%,
+      transparent 50%
+    );
+    transform: rotate(-45deg);
+    transition: transform 0.3s ease;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px ${props => props.colors.main}60;
+
+    &:before {
+      animation: tagShine 1s forwards;
+    }
+  }
+
+  @keyframes tagShine {
+    to {
+      transform: translateX(100%) rotate(-45deg);
+    }
+  }
 
   button {
     background: none;
     border: none;
-    color: black;
+    color: white;
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0;
@@ -67,10 +105,16 @@ const ExerciseTag = styled.div`
     height: 24px;
     border-radius: 50%;
     transition: all 0.2s ease;
+    position: relative;
+    z-index: 2;
 
     &:hover {
-      background-color: rgba(0, 0, 0, 0.1);
-      transform: scale(1.1);
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: rotate(90deg);
+    }
+
+    &:active {
+      transform: rotate(180deg) scale(0.9);
     }
   }
 `;
@@ -124,6 +168,9 @@ const CategoryButton = styled.button`
   text-align: left;
   font-size: 1rem;
   cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 
   .icon {
     width: 24px;
@@ -132,12 +179,53 @@ const CategoryButton = styled.button`
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 2;
   }
 
   &:after {
     content: '›';
     margin-left: auto;
     font-size: 1.5rem;
+    transition: transform 0.3s ease;
+  }
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: ${props => props.color}15;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  &:hover {
+    transform: translateX(4px);
+    background-color: #333;
+
+    &:before {
+      transform: translateX(0);
+    }
+
+    &:after {
+      transform: translateX(4px);
+    }
+
+    .icon {
+      transform: scale(1.1) rotate(-5deg);
+      box-shadow: 0 0 15px ${props => props.color}40;
+    }
+  }
+
+  &:active {
+    transform: translateX(2px);
+    .icon {
+      transform: scale(0.95) rotate(-3deg);
+    }
   }
 `;
 
@@ -190,7 +278,8 @@ const ExerciseButton = styled.button`
   align-items: center;
   gap: 1rem;
   background-color: #2a2a2a;
-  border: 2px solid ${props => (props.isSelected ? '#fff' : 'transparent')};
+  border: 2px solid
+    ${props => (props.isSelected ? props.colors.secondary : 'transparent')};
   border-radius: 12px;
   padding: 1rem;
   color: white;
@@ -198,23 +287,149 @@ const ExerciseButton = styled.button`
   text-align: left;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: ${props => props.colors.gradient};
+    opacity: ${props => (props.isSelected ? 0.1 : 0)};
+    transition: opacity 0.3s ease;
+  }
 
   &:hover {
+    transform: translateX(4px);
     background-color: #333;
+
+    &:before {
+      opacity: 0.05;
+    }
   }
+
+  &:active {
+    transform: translateX(2px);
+  }
+
+  ${props =>
+    props.isSelected &&
+    `
+    &:after {
+      content: '✓';
+      position: absolute;
+      right: 1rem;
+      color: ${props.colors.main};
+      font-size: 1.2rem;
+      opacity: 0.8;
+    }
+  `}
 `;
 
 const StartButton = styled.button`
-  width: 100%;
-  padding: 1rem;
-  background-color: transparent;
-  border: 2px solid #333;
-  border-radius: 8px;
+  position: relative;
+  width: auto;
+  padding: 0.75rem 3rem;
+  background: ${props => props.colors.gradient};
+  border: none;
+  border-radius: 25px;
   color: white;
   font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
   cursor: pointer;
-  margin-top: 1rem;
+  margin: 1.5rem auto;
+  display: block;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  z-index: 1;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: ${props => props.colors.gradient};
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.3s ease;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      to bottom right,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.05) 40%,
+      transparent 50%
+    );
+    transform: rotate(-45deg);
+    animation: shine 3s infinite;
+    z-index: 2;
+  }
+
+  @keyframes shine {
+    0% {
+      transform: translateX(-50%) rotate(-45deg);
+    }
+    50% {
+      transform: translateX(150%) rotate(-45deg);
+    }
+    100% {
+      transform: translateX(-50%) rotate(-45deg);
+    }
+  }
+
+  &:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+      0 10px 20px -10px ${props => props.colors.main}60,
+      0 0 15px ${props => props.colors.main}40 inset;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+
+    &::before {
+      opacity: 0.5;
+    }
+  }
+
+  &:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow:
+      0 5px 10px -5px ${props => props.colors.main}60,
+      0 0 10px ${props => props.colors.main}30 inset;
+  }
+
+  /* Pulsing effect */
+  animation: pulse 2s infinite;
+
+  @keyframes pulse {
+    0% {
+      box-shadow:
+        0 5px 15px -5px ${props => props.colors.main}40,
+        0 0 0 0 ${props => props.colors.main}60;
+    }
+    70% {
+      box-shadow:
+        0 5px 15px -5px ${props => props.colors.main}40,
+        0 0 0 15px ${props => props.colors.main}00;
+    }
+    100% {
+      box-shadow:
+        0 5px 15px -5px ${props => props.colors.main}40,
+        0 0 0 0 ${props => props.colors.main}00;
+    }
+  }
 `;
 
 const CategoryHeader = styled.div`
@@ -256,13 +471,14 @@ const DisabledOverlay = styled.div`
 `;
 
 const AddWorkout = () => {
+  const { showError } = useError();
   const [templates] = useState([]);
   const [exercises, setExercises] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
   const [addedExercises, setAddedExercises] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const { user } = useUser();
-  const color = determineColor(user);
+  const colors = determineColor(user);
   const categories = [
     { name: 'Upper Body', value: 'UPPER_BODY', icon: '💪', color: '#4CAF50' },
     { name: 'Lower Body', value: 'LOWER_BODY', icon: '🦵', color: '#F44336' },
@@ -277,9 +493,28 @@ const AddWorkout = () => {
   async function fetchExercises(category, query = null) {
     const token = localStorage.getItem('token');
     const user = jwtDecode(token);
-    if (!query) {
+
+    try {
+      if (!query) {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/users/${user.id}/templates/?category=${category}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (!response.ok) {
+          throw new Error('Failed to fetch templates');
+        }
+        const data = await response.json();
+        console.log(data);
+        return setExercises(data);
+      }
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/users/${user.id}/templates/?category=${category}`,
+        `${import.meta.env.VITE_API_URL}/users/${user.id}/templates/?query=${query}`,
         {
           method: 'GET',
           headers: {
@@ -288,23 +523,15 @@ const AddWorkout = () => {
           },
         }
       );
+      if (!response.ok) {
+        throw new Error('Failed to fetch exercises');
+      }
       const data = await response.json();
       console.log(data);
       return setExercises(data);
+    } catch (error) {
+      showError(error.message || 'Error fetching exercises');
     }
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/users/${user.id}/templates/?query=${query}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    const data = await response.json();
-    console.log(data);
-    return setExercises(data);
   }
   const handleCategoryClick = category => {
     setActiveCategory(category);
@@ -353,7 +580,7 @@ const AddWorkout = () => {
             <SectionTitle>Exercises added:</SectionTitle>
             <AddedExercises>
               {addedExercises.map((exercise, index) => (
-                <ExerciseTag key={index} color={color}>
+                <ExerciseTag key={index} colors={colors}>
                   {exercise.name}
                   <button onClick={() => handleExerciseClick(exercise)}>
                     ×
@@ -426,6 +653,7 @@ const AddWorkout = () => {
               <ExerciseList>
                 {exercises.map((exercise, index) => (
                   <ExerciseButton
+                    colors={colors}
                     key={index}
                     onClick={() => handleExerciseClick(exercise)}
                     isSelected={isExerciseSelected(exercise.name)}
@@ -439,7 +667,7 @@ const AddWorkout = () => {
         )}
       </DisabledOverlay>
 
-      <StartButton>Start</StartButton>
+      <StartButton colors={colors}>Start</StartButton>
     </Container>
   );
 };

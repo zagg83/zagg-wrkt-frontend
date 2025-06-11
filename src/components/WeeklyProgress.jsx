@@ -21,9 +21,10 @@ const ProgressContainer = styled.div`
     background: linear-gradient(
       90deg,
       transparent,
-      ${props => props.color},
+      ${props => props.colors.secondary},
       transparent
     );
+    opacity: 0.8;
   }
 `;
 
@@ -36,10 +37,10 @@ const Title = styled.h2`
 
   &::after {
     content: '•';
-    color: ${props => props.color};
+    color: ${props => props.colors.main};
     font-size: 2.5rem;
     line-height: 0;
-    text-shadow: 0 0 10px ${props => props.color};
+    text-shadow: 0 0 10px ${props => props.colors.main}40;
   }
 `;
 
@@ -61,7 +62,13 @@ const Bar = styled.div`
 
 const WeeklyProgress = () => {
   const { user } = useUser();
-  const color = determineColor(user);
+  const colors = determineColor(user);
+
+  // Calculate opacity based on how recent the day is
+  const getOpacity = (index, total) => {
+    return 0.4 + (index / total) * 0.6;
+  };
+
   const progressData = [
     { height: 30, color: '#E6A0FF' },
     { height: 20, color: '#E6A0FF' },
@@ -73,8 +80,8 @@ const WeeklyProgress = () => {
   ];
 
   return (
-    <ProgressContainer color={color}>
-      <Title color={color}>Weekly progress</Title>
+    <ProgressContainer colors={colors}>
+      <Title colors={colors}>Weekly progress</Title>
       <ChartContainer>
         {progressData.map((data, index) => (
           <Bar key={index} height={data.height} color={data.color} />

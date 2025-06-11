@@ -7,14 +7,17 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import AddWorkout from './pages/AddWorkout';
 import { UserProvider } from './context/UserContext';
+import { ErrorProvider } from './context/ErrorContext';
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: (
-      <UserProvider>
-        <Layout />
-      </UserProvider>
+      <ErrorProvider>
+        <UserProvider>
+          <Layout />
+        </UserProvider>
+      </ErrorProvider>
     ),
     children: [
       {
