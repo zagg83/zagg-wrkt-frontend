@@ -1,7 +1,7 @@
-import React from 'react'
-import { Outlet } from 'react-router-dom'
-import styled from 'styled-components'
-import BottomNav from './BottomNav'
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import styled from 'styled-components';
+import BottomNav from './BottomNav';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -11,7 +11,7 @@ const Container = styled.div`
   position: relative;
   border-left: 1px solid rgba(255, 255, 255, 0.05);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
-`
+`;
 
 const TopNav = styled.nav`
   background-color: #121212;
@@ -20,13 +20,13 @@ const TopNav = styled.nav`
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-`
+`;
 
 const Title = styled.h1`
   color: white;
   font-size: 1.2rem;
   font-weight: 500;
-`
+`;
 
 const ProfileButton = styled.button`
   width: 32px;
@@ -35,7 +35,7 @@ const ProfileButton = styled.button`
   background-color: #333;
   border: none;
   cursor: pointer;
-`
+`;
 
 const Layout = () => {
   return (
@@ -47,7 +47,7 @@ const Layout = () => {
       <Outlet />
       <BottomNav />
     </Container>
-  )
-}
+  );
+};
 
-export default Layout
+export default Layout;

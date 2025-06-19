@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { useUser } from '../context/UserContext';
 import determineColor from '../util/determineColor';
 import { useError } from '../context/ErrorContext';
+import { useNavigate } from 'react-router-dom';
 
 const Container = styled.div`
   background-color: #121212;
@@ -490,6 +491,8 @@ const AddWorkout = () => {
       color: '#2196F3',
     },
   ];
+  const navigate = useNavigate();
+
   async function fetchExercises(category, query = null) {
     const token = localStorage.getItem('token');
     const user = jwtDecode(token);
@@ -555,6 +558,44 @@ const AddWorkout = () => {
   const handleBackClick = () => {
     setExercises([]);
     setActiveCategory(null);
+  };
+
+  const handleStart = async () => {
+    try {
+      if (addedExercises.length === 0) {
+        showError('Please add at least one exercise');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const user = jwtDecode(token);
+
+      // Create the workout
+      const workoutRes = await fetch(
+        `${import.meta.env.VITE_API_URL}/users/${user.id}/workouts`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            name: new Date(),
+            exercises: addedExercises,
+          }),
+        }
+      );
+
+      if (!workoutRes.ok) {
+        throw new Error('Failed to create workout');
+      }
+
+      const workout = await workoutRes.json();
+      navigate(`/workouts/${workout.id}`);
+    } catch (error) {
+      console.error('Error creating workout:', error);
+      showError(error.message || 'Failed to create workout');
+    }
   };
 
   return (
@@ -667,7 +708,9 @@ const AddWorkout = () => {
         )}
       </DisabledOverlay>
 
-      <StartButton colors={colors}>Start</StartButton>
+      <StartButton colors={colors} onClick={handleStart}>
+        Start
+      </StartButton>
     </Container>
   );
 };

@@ -15,6 +15,7 @@ const NavWrapper = styled.div`
   border-top: 1px solid #333;
   border-left: 1px solid rgba(255, 255, 255, 0.05);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 100;
 `;
 
 const Nav = styled.nav`
@@ -85,8 +86,8 @@ const BottomNav = () => {
         <AddButton to="/add-workout" colors={colors}>
           <IconWrapper>+</IconWrapper>
         </AddButton>
-        <NavItem to="/templates">
-          <IconWrapper>📋</IconWrapper>
+        <NavItem to="/workouts">
+          <IconWrapper>📅</IconWrapper>
         </NavItem>
       </Nav>
     </NavWrapper>
