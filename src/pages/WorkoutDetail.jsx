@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useUser } from '../context/UserContext';
@@ -396,7 +396,7 @@ const CloseButton = styled.button`
 
 const WorkoutDetail = () => {
   const { workoutId } = useParams();
-  const { user } = useUser();
+  const { user, setUserState } = useUser();
   const colors = determineColor(user);
   const [particles, setParticles] = useState([]);
   const [workout, setWorkout] = useState(null);
@@ -409,6 +409,8 @@ const WorkoutDetail = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const modalRef = useRef(null);
+  const [pendingChanges, setPendingChanges] = useState(new Set());
+  const [isSaving, setIsSaving] = useState(false);
 
   const categories = [
     { name: 'Upper Body', value: 'UPPER_BODY', icon: '💪', color: '#4CAF50' },
@@ -468,6 +470,55 @@ const WorkoutDetail = () => {
   const refreshWorkout = () => {
     setRefreshTrigger(prev => prev + 1);
   };
+
+  // Save all pending changes to the database
+  const savePendingChanges = useCallback(async () => {
+    if (pendingChanges.size === 0 || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      const promises = Array.from(pendingChanges).map(async setId => {
+        // Find the set data from the current workout state
+        let setData = null;
+        workout.exercises.forEach(exercise => {
+          exercise.sets.forEach(set => {
+            if (set.id === setId) {
+              setData = set;
+            }
+          });
+        });
+
+        if (!setData) return;
+
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/users/${user.id}/sets/${setId}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              reps: setData.reps,
+              weight: setData.weight,
+            }),
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error(`Failed to update set ${setId}`);
+        }
+      });
+
+      await Promise.all(promises);
+      setPendingChanges(new Set()); // Clear pending changes after successful save
+    } catch (error) {
+      console.error('Error saving pending changes:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, []);
 
   const handleDeleteWorkout = async () => {
     try {
@@ -547,7 +598,15 @@ const WorkoutDetail = () => {
       if (!res.ok) {
         throw new Error('Failed to add exercise');
       }
-      refreshWorkout();
+
+      const newExercise = await res.json();
+
+      // Update local state immediately for better UX
+      setWorkout(prevWorkout => ({
+        ...prevWorkout,
+        exercises: [...prevWorkout.exercises, newExercise],
+      }));
+
       setShowExercisePicker(false);
     } catch (error) {
       console.error('Error adding exercise:', error);
@@ -570,7 +629,14 @@ const WorkoutDetail = () => {
       if (!res.ok) {
         throw new Error('Failed to remove exercise');
       }
-      refreshWorkout();
+
+      // Update local state immediately for better UX
+      setWorkout(prevWorkout => ({
+        ...prevWorkout,
+        exercises: prevWorkout.exercises.filter(
+          exercise => exercise.id !== exerciseId
+        ),
+      }));
     } catch (error) {
       console.error('Error removing exercise:', error);
     }
@@ -597,7 +663,18 @@ const WorkoutDetail = () => {
       if (!res.ok) {
         throw new Error('Failed to add set');
       }
-      refreshWorkout();
+
+      const newSet = await res.json();
+
+      // Update local state immediately for better UX
+      setWorkout(prevWorkout => ({
+        ...prevWorkout,
+        exercises: prevWorkout.exercises.map(exercise =>
+          exercise.id === exerciseId
+            ? { ...exercise, sets: [...exercise.sets, newSet] }
+            : exercise
+        ),
+      }));
     } catch (error) {
       console.error('Error adding set:', error);
     }
@@ -619,14 +696,49 @@ const WorkoutDetail = () => {
       if (!res.ok) {
         throw new Error('Failed to remove set');
       }
-      refreshWorkout();
+
+      // Update local state immediately for better UX
+      setWorkout(prevWorkout => ({
+        ...prevWorkout,
+        exercises: prevWorkout.exercises.map(exercise =>
+          exercise.id === exerciseId
+            ? {
+                ...exercise,
+                sets: exercise.sets.filter(set => set.id !== setId),
+              }
+            : exercise
+        ),
+      }));
     } catch (error) {
       console.error('Error removing set:', error);
     }
   };
 
-  const handleSetChange = async (setId, weight, reps, exId) => {
+  // Handle input blur events - update set values when user finishes editing
+  const handleInputBlur = async (setId, field, value) => {
     try {
+      // Clean up the value (remove leading zeros, convert to number)
+      let cleanValue = value;
+      if (value && value.length >= 2 && value[0] === '0') {
+        cleanValue = value.slice(1);
+      }
+      cleanValue = parseInt(cleanValue) || 0;
+
+      // Update local state immediately for better UX
+      setWorkout(prevWorkout => ({
+        ...prevWorkout,
+        exercises: prevWorkout.exercises.map(exercise => ({
+          ...exercise,
+          sets: exercise.sets.map(set =>
+            set.id === setId ? { ...set, [field]: cleanValue } : set
+          ),
+        })),
+      }));
+
+      // Add to pending changes instead of immediately saving
+      setPendingChanges(prev => new Set([...prev, setId]));
+
+      // Save immediately for better reliability
       const token = localStorage.getItem('token');
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/users/${user.id}/sets/${setId}`,
@@ -637,41 +749,25 @@ const WorkoutDetail = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            weight,
-            reps,
+            [field]: cleanValue,
           }),
         }
       );
       if (!res.ok) {
         throw new Error('Failed to update set');
       }
-      const newEx = workout.exercises.map(ex => {
-        if (ex.id === exId) {
-          const newSets = ex.sets.map(set => {
-            if (set.id === setId) {
-              const res = { ...set };
-              if (weight != null) {
-                res.weight = weight || 0;
-                if (weight.length >= 2 && weight[0] == '0') {
-                  res.weight = weight.slice(1);
-                }
-              } else if (reps != null) {
-                res.reps = reps || 0;
-                if (reps.length >= 2 && reps[0] == '0') {
-                  res.reps = reps.slice(1);
-                }
-              }
-              return res;
-            }
-            return set;
-          });
-          return { ...ex, sets: newSets };
-        }
-        return ex;
+
+      // Remove from pending changes after successful save
+      setPendingChanges(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(setId);
+        return newSet;
       });
-      setWorkout({ ...workout, exercises: newEx });
+      setUserState();
     } catch (error) {
       console.error('Error updating set:', error);
+      // If the API call fails, we could revert the local state here
+      // For now, we'll just log the error
     }
   };
 
@@ -689,6 +785,32 @@ const WorkoutDetail = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showExercisePicker]);
+
+  // Save pending changes when component unmounts
+  useEffect(() => {
+    const handleBeforeUnload = e => {
+      if (pendingChanges.size > 0) {
+        // Try to save synchronously before unload
+        savePendingChanges();
+        // Show a warning to the user
+        e.preventDefault();
+        e.returnValue =
+          'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    console.log('Hi');
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Save any remaining changes when component unmounts
+      if (pendingChanges.size > 0) {
+        savePendingChanges();
+      }
+    };
+  }, [pendingChanges, savePendingChanges]);
 
   if (loading) {
     return (
@@ -723,6 +845,26 @@ const WorkoutDetail = () => {
       <ContentWrapper>
         <Header colors={colors}>
           <WorkoutTitle>{workout.name}</WorkoutTitle>
+          {pendingChanges.size > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                left: '1rem',
+                color: 'white',
+                fontSize: '0.9rem',
+                opacity: 0.8,
+                background: 'rgba(0, 0, 0, 0.3)',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '0.5rem',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              {isSaving
+                ? 'Saving...'
+                : `${pendingChanges.size} change${pendingChanges.size > 1 ? 's' : ''} pending`}
+            </div>
+          )}
           <RemoveExerciseButton onClick={handleDeleteWorkout}>
             Delete Workout
           </RemoveExerciseButton>
@@ -744,34 +886,60 @@ const WorkoutDetail = () => {
                   <Label>Weight (kg)</Label>
                   <Label></Label>
                 </SetRow>
+
                 {exercise.sets.map((set, index) => (
                   <SetRow key={index}>
                     <Label>{index + 1}</Label>
                     <Input
                       type="number"
                       placeholder="Reps"
-                      value={set.reps}
-                      onChange={e =>
-                        handleSetChange(
-                          set.id,
-                          null,
-                          e.target.value,
-                          exercise.id
-                        )
+                      value={set.reps || ''}
+                      onChange={e => {
+                        // Update local state immediately for responsive UI
+                        setWorkout(prevWorkout => ({
+                          ...prevWorkout,
+                          exercises: prevWorkout.exercises.map(ex => ({
+                            ...ex,
+                            sets: ex.sets.map(s =>
+                              s.id === set.id
+                                ? { ...s, reps: parseInt(e.target.value) || 0 }
+                                : s
+                            ),
+                          })),
+                        }));
+                        // Track this change as pending
+                        setPendingChanges(prev => new Set([...prev, set.id]));
+                      }}
+                      onBlur={e =>
+                        handleInputBlur(set.id, 'reps', e.target.value)
                       }
                       colors={colors}
                     />
                     <Input
                       type="number"
                       placeholder="Weight"
-                      value={set.weight}
-                      onChange={e =>
-                        handleSetChange(
-                          set.id,
-                          e.target.value,
-                          null,
-                          exercise.id
-                        )
+                      value={set.weight || ''}
+                      onChange={e => {
+                        // Update local state immediately for responsive UI
+                        setWorkout(prevWorkout => ({
+                          ...prevWorkout,
+                          exercises: prevWorkout.exercises.map(ex => ({
+                            ...ex,
+                            sets: ex.sets.map(s =>
+                              s.id === set.id
+                                ? {
+                                    ...s,
+                                    weight: parseInt(e.target.value) || 0,
+                                  }
+                                : s
+                            ),
+                          })),
+                        }));
+                        // Track this change as pending
+                        setPendingChanges(prev => new Set([...prev, set.id]));
+                      }}
+                      onBlur={e =>
+                        handleInputBlur(set.id, 'weight', e.target.value)
                       }
                       colors={colors}
                     />
