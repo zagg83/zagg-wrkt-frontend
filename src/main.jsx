@@ -8,8 +8,14 @@ import Home from './pages/Home';
 import AddWorkout from './pages/AddWorkout';
 import WorkoutLog from './pages/WorkoutLog';
 import WorkoutDetail from './pages/WorkoutDetail';
+import Stats from './pages/Stats';
 import { UserProvider } from './context/UserContext';
 import { ErrorProvider } from './context/ErrorContext';
+import Ranks from './pages/Ranks';
+import Signup from './pages/Signup';
+import Login from './pages/Login';
+import Templates from './pages/Templates';
+import Settings from './pages/Settings';
 
 const router = createBrowserRouter([
   {
@@ -38,7 +44,31 @@ const router = createBrowserRouter([
         path: 'workouts/:workoutId',
         element: <WorkoutDetail />,
       },
+      {
+        path: 'stats',
+        element: <Stats />,
+      },
+      {
+        path: '/ranks',
+        element: <Ranks />,
+      },
+      {
+        path: '/templates',
+        element: <Templates />,
+      },
+      {
+        path: '/settings',
+        element: <Settings />,
+      },
     ],
+  },
+  {
+    path: 'login',
+    element: <Login />,
+  },
+  {
+    path: 'signup',
+    element: <Signup />,
   },
 ]);
 

@@ -413,14 +413,26 @@ const WorkoutDetail = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const categories = [
-    { name: 'Upper Body', value: 'UPPER_BODY', icon: '💪', color: '#4CAF50' },
-    { name: 'Lower Body', value: 'LOWER_BODY', icon: '🦵', color: '#F44336' },
+    {
+      name: 'Push',
+      value: 'CHEST,SHOULDERS,TRICEPS',
+      icon: '🤜',
+      color: '#4CAF50',
+    },
+    { name: 'Pull', value: 'BACK,BICEPS', icon: '🤛', color: '#2196F3' },
+    {
+      name: 'Legs',
+      value: 'QUADS,HAMSTRINGS,GLUTES,CALVES',
+      icon: '🦵',
+      color: '#F44336',
+    },
+    { name: 'Core', value: 'CORE', icon: '🧘', color: '#FFB300' },
     { name: 'Bodyweight', value: 'BODYWEIGHT', icon: '🏃', color: '#FF9800' },
     {
       name: 'Weight Lifting',
       value: 'WEIGHT_LIFTING',
       icon: '🏋️',
-      color: '#2196F3',
+      color: '#9C27B0',
     },
   ];
 

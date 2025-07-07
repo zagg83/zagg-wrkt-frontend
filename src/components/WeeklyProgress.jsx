@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import { useUser } from '../context/UserContext';
 import determineColor from '../util/determineColor';
@@ -81,6 +81,8 @@ const WeeklyProgress = () => {
   const [days, setDays] = useState([]);
   const [workoutNames, setWorkoutNames] = useState([]);
   const [isLastPage, setIsLastPage] = useState(false);
+  const [globalMax, setGlobalMax] = useState(0);
+  const fetchedAllMax = useRef(false);
 
   useEffect(() => {
     const fetchWorkouts = async () => {
@@ -137,6 +139,38 @@ const WeeklyProgress = () => {
         });
         setDays(labels);
         setWorkoutNames(padded.map(w => w.name || ''));
+
+        // Fetch all workouts once to determine global max
+        if (!fetchedAllMax.current && user?.id) {
+          fetchedAllMax.current = true;
+          const allRes = await fetch(
+            `${import.meta.env.VITE_API_URL}/users/${user.id}/workouts?limit=1000&offset=0`,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          if (allRes.ok) {
+            const allWorkouts = await allRes.json();
+            let maxPoints = 0;
+            allWorkouts.forEach(w => {
+              let total = 0;
+              if (w.exercises) {
+                w.exercises.forEach(ex => {
+                  if (ex.sets) {
+                    ex.sets.forEach(set => {
+                      total += set.points || 0;
+                    });
+                  }
+                });
+              }
+              if (total > maxPoints) maxPoints = total;
+            });
+            setGlobalMax(Math.ceil(maxPoints * 1.1)); // 10% headroom
+          }
+        }
       } catch (err) {
         setWeeklyData([]);
         setDays([]);
@@ -226,6 +260,7 @@ const WeeklyProgress = () => {
           },
         },
         beginAtZero: true,
+        max: globalMax > 0 ? globalMax : undefined,
       },
     },
   };

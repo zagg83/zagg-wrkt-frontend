@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import styled from 'styled-components';
 import BottomNav from './BottomNav';
 import { useUser } from '../context/UserContext';
@@ -30,7 +30,7 @@ const Title = styled.h1`
   font-weight: 500;
 `;
 
-const ProfileButton = styled.button`
+const ProfileButton = styled(Link)`
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -145,7 +145,7 @@ const Layout = () => {
           <PointsDisplay colors={colors}>
             <PointsValue colors={colors}>{points.toLocaleString()}</PointsValue>
           </PointsDisplay>
-          <ProfileButton />
+          <ProfileButton to={'/settings'} />
         </NavContent>
       </TopNav>
       <Outlet />

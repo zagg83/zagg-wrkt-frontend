@@ -33,7 +33,6 @@ export const UserProvider = ({ children }) => {
           throw new Error('Failed to fetch user data');
         }
         const user = await res.json();
-        console.log(user);
         if (decoded.exp * 1000 < Date.now()) {
           navigate('/login');
         } else {
@@ -43,6 +42,7 @@ export const UserProvider = ({ children }) => {
         navigate('/login');
       }
     } else {
+      console.log('nav to login');
       navigate('/login');
     }
   };

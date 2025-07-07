@@ -1,10 +1,11 @@
 import { jwtDecode } from 'jwt-decode';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useUser } from '../context/UserContext';
 import determineColor from '../util/determineColor';
 import { useError } from '../context/ErrorContext';
 import { useNavigate } from 'react-router-dom';
+import CreateTemplate from '../components/CreateTemplate';
 
 const Container = styled.div`
   background-color: #121212;
@@ -30,7 +31,10 @@ const TemplateSelect = styled.select`
   border-radius: 8px;
   color: white;
   font-size: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
 
   option {
     background-color: #2a2a2a;
@@ -106,7 +110,7 @@ const ExerciseTag = styled.div`
     height: 24px;
     border-radius: 50%;
     transition: all 0.2s ease;
-    position: relative;
+    position: relative;selectedTemplateId
     z-index: 2;
 
     &:hover {
@@ -471,36 +475,80 @@ const DisabledOverlay = styled.div`
   transition: all 0.3s ease;
 `;
 
+const TemplateSelectorRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+`;
+
+const NewTemplateButton = styled.button`
+  background: linear-gradient(90deg, #00bcd4 60%, #7ecfff 100%);
+  color: #23243a;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #00bcd455;
+  transition: all 0.2s;
+  padding: 0;
+  margin-left: 0.2rem;
+  &:hover {
+    transform: translateY(-2px) scale(1.08);
+    box-shadow: 0 4px 14px #00bcd455;
+    background: linear-gradient(90deg, #7ecfff 60%, #00bcd4 100%);
+  }
+`;
+
 const AddWorkout = () => {
   const { showError } = useError();
-  const [templates] = useState([]);
+  const [templates, setTemplates] = useState([]);
   const [exercises, setExercises] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
   const [addedExercises, setAddedExercises] = useState([]);
-  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const { user } = useUser();
   const colors = determineColor(user);
   const categories = [
-    { name: 'Upper Body', value: 'UPPER_BODY', icon: '💪', color: '#4CAF50' },
-    { name: 'Lower Body', value: 'LOWER_BODY', icon: '🦵', color: '#F44336' },
+    {
+      name: 'Push',
+      value: 'CHEST,SHOULDERS,TRICEPS',
+      icon: '🤜',
+      color: '#4CAF50',
+    },
+    { name: 'Pull', value: 'BACK,BICEPS', icon: '🤛', color: '#2196F3' },
+    {
+      name: 'Legs',
+      value: 'QUADS,HAMSTRINGS,GLUTES,CALVES',
+      icon: '🦵',
+      color: '#F44336',
+    },
+    { name: 'Core', value: 'CORE', icon: '🧘', color: '#FFB300' },
     { name: 'Bodyweight', value: 'BODYWEIGHT', icon: '🏃', color: '#FF9800' },
     {
       name: 'Weight Lifting',
       value: 'WEIGHT_LIFTING',
       icon: '🏋️',
-      color: '#2196F3',
+      color: '#9C27B0',
     },
   ];
   const navigate = useNavigate();
+  const [showCreateTemplate, setShowCreateTemplate] = useState(false);
 
-  async function fetchExercises(category, query = null) {
-    const token = localStorage.getItem('token');
-    const user = jwtDecode(token);
+  useEffect(() => {
+    async function fetchWrktTemplates() {
+      const token = localStorage.getItem('token');
+      const user = jwtDecode(token);
 
-    try {
-      if (!query) {
+      try {
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/users/${user.id}/templates/?category=${category}`,
+          `${import.meta.env.VITE_API_URL}/users/${user.id}/workout-templates`,
           {
             method: 'GET',
             headers: {
@@ -513,7 +561,36 @@ const AddWorkout = () => {
           throw new Error('Failed to fetch templates');
         }
         const data = await response.json();
-        console.log(data);
+        setTemplates(data);
+      } catch (error) {
+        showError(error.message || 'Error fetching templates');
+      }
+    }
+
+    fetchWrktTemplates();
+  }, [showError]);
+
+  async function fetchExercises(category, query = null) {
+    const token = localStorage.getItem('token');
+    const user = jwtDecode(token);
+
+    try {
+      if (!query) {
+        let url = `${import.meta.env.VITE_API_URL}/users/${user.id}/templates/`;
+        if (category) {
+          url += `?category=${category}`;
+        }
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch templates');
+        }
+        const data = await response.json();
         return setExercises(data);
       }
       const response = await fetch(
@@ -561,15 +638,20 @@ const AddWorkout = () => {
   };
 
   const handleStart = async () => {
+    let exercisesToAdd = addedExercises;
     try {
-      if (addedExercises.length === 0) {
+      if (addedExercises.length === 0 && !selectedTemplateId) {
         showError('Please add at least one exercise');
         return;
+      } else if (selectedTemplateId) {
+        const selectedTemplate = templates.find(
+          t => t.id === selectedTemplateId
+        );
+        exercisesToAdd = selectedTemplate.exercises;
       }
 
       const token = localStorage.getItem('token');
       const user = jwtDecode(token);
-
       // Create the workout
       const workoutRes = await fetch(
         `${import.meta.env.VITE_API_URL}/users/${user.id}/workouts`,
@@ -581,7 +663,7 @@ const AddWorkout = () => {
           },
           body: JSON.stringify({
             name: new Date(),
-            exercises: addedExercises,
+            exercises: exercisesToAdd,
           }),
         }
       );
@@ -602,20 +684,31 @@ const AddWorkout = () => {
     <Container>
       <Section>
         <SectionTitle>Use Template</SectionTitle>
-        <TemplateSelect
-          value={selectedTemplate}
-          onChange={e => setSelectedTemplate(e.target.value)}
-        >
-          <option value="">no-template</option>
-          {templates.map((template, index) => (
-            <option key={index} value={template.id}>
-              {template.name}
-            </option>
-          ))}
-        </TemplateSelect>
+        <TemplateSelectorRow>
+          <TemplateSelect
+            value={selectedTemplateId}
+            onChange={e => setSelectedTemplateId(e.target.value)}
+          >
+            <option value="">no-template</option>
+            {templates.map((template, index) => (
+              <option key={index} value={template.id}>
+                {template.name}
+              </option>
+            ))}
+          </TemplateSelect>
+          <NewTemplateButton
+            onClick={() => {
+              setShowCreateTemplate(true);
+            }}
+            title="Create new template"
+            aria-label="Create new template"
+          >
+            +
+          </NewTemplateButton>
+        </TemplateSelectorRow>
       </Section>
 
-      <DisabledOverlay disabled={selectedTemplate !== ''}>
+      <DisabledOverlay disabled={selectedTemplateId !== ''}>
         {addedExercises.length > 0 && (
           <Section>
             <SectionTitle>Exercises added:</SectionTitle>
@@ -711,6 +804,23 @@ const AddWorkout = () => {
       <StartButton colors={colors} onClick={handleStart}>
         Start
       </StartButton>
+
+      <CreateTemplate
+        isOpen={showCreateTemplate}
+        onClose={() => setShowCreateTemplate(false)}
+        initialSelectedExercises={[]}
+        onSuccess={() => {
+          // Refresh templates list after creation
+          const token = localStorage.getItem('token');
+          const user = jwtDecode(token);
+          fetch(
+            `${import.meta.env.VITE_API_URL}/users/${user.id}/workout-templates`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+            .then(res => res.json())
+            .then(data => setTemplates(data));
+        }}
+      />
     </Container>
   );
 };

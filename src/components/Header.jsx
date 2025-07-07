@@ -2,6 +2,7 @@ import React from 'react';
 import styled from 'styled-components';
 import { useUser } from '../context/UserContext';
 import determineColor from '../util/determineColor';
+import { Link } from 'react-router-dom';
 
 const HeaderContainer = styled.div`
   background-color: #1e1e1e;
@@ -26,7 +27,7 @@ const ProfileSection = styled.div`
   gap: 1rem;
 `;
 
-const ProfilePic = styled.div`
+const ProfilePic = styled(Link)`
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -96,7 +97,7 @@ const Header = () => {
     <HeaderContainer colors={colors}>
       <UserInfo>
         <ProfileSection>
-          <ProfilePic />
+          <ProfilePic to={'/settings'} />
           <Greeting colors={colors}>
             <h1>
               Hello <span>{username}</span>
