@@ -145,7 +145,7 @@ const Signup = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ username: name, email, password }),
       });
       const data = await response.json();
       if (!response.ok || !data.id) {
@@ -153,7 +153,7 @@ const Signup = () => {
         setLoading(false);
         return;
       }
-      navigate('/login');
+      navigate('/verify-notice', { state: { email } });
     } catch (err) {
       setError('Network error');
     } finally {

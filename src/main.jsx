@@ -16,6 +16,9 @@ import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Templates from './pages/Templates';
 import Settings from './pages/Settings';
+import VerifyNotice from './pages/VerifyNotice';
+import Verify from './pages/Verify';
+import ResendVerify from './pages/ResendVerify';
 
 const router = createBrowserRouter([
   {
@@ -69,6 +72,18 @@ const router = createBrowserRouter([
   {
     path: 'signup',
     element: <Signup />,
+  },
+  {
+    path: 'verify-notice',
+    element: <VerifyNotice />,
+  },
+  {
+    path: 'verify/:token',
+    element: <Verify />,
+  },
+  {
+    path: 'resend-verification',
+    element: <ResendVerify />,
   },
 ]);
 

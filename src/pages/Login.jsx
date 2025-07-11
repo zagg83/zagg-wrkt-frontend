@@ -147,8 +147,9 @@ const Login = () => {
         body: JSON.stringify({ email, password }),
       });
       const token = await response.json();
+      console.log(token);
       if (!response.ok || !token) {
-        setError(error || 'Login failed');
+        setError(token.error || 'Login failed');
         setLoading(false);
         return;
       }
@@ -172,7 +173,12 @@ const Login = () => {
   useEffect(() => {
     const listener = event => {
       if (event.origin !== import.meta.env.VITE_API_URL) return;
-      const { token } = event.data;
+      const { token, error } = event.data;
+      if (error) {
+        console.log(error);
+        setError(error);
+      }
+      console.log(token);
       if (token) {
         localStorage.setItem('token', token);
         navigate('/');

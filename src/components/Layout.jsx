@@ -31,12 +31,17 @@ const Title = styled.h1`
 `;
 
 const ProfileButton = styled(Link)`
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background-color: #333;
   border: none;
   cursor: pointer;
+  img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+  }
 `;
 
 const PointsDisplay = styled.div`
@@ -145,7 +150,12 @@ const Layout = () => {
           <PointsDisplay colors={colors}>
             <PointsValue colors={colors}>{points.toLocaleString()}</PointsValue>
           </PointsDisplay>
-          <ProfileButton to={'/settings'} />
+          <ProfileButton to={'/settings'}>
+            <img
+              src={`https://api.dicebear.com/9.x/initials/svg?seed=${user?.name}&backgroundColor=${colors.secondary.replace(/^#/, '')}&textColor=${colors.secondary}`}
+              alt="Profile"
+            />
+          </ProfileButton>
         </NavContent>
       </TopNav>
       <Outlet />
