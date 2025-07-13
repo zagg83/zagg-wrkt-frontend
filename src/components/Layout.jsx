@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import BottomNav from './BottomNav';
 import { useUser } from '../context/UserContext';
 import determineColor from '../util/determineColor';
+import LogoInApp from '/LogoInApp.png';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -137,6 +138,26 @@ const NavContent = styled.div`
   gap: 1rem;
 `;
 
+const LogoImg = styled.img`
+  height: 60px;
+  width: auto;
+  display: block;
+`;
+
+const BrandContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const BrandText = styled.span`
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-family: 'Comic Relief', 'Montserrat', 'Poppins', Arial, sans-serif;
+`;
+
 const Layout = () => {
   const { user } = useUser();
   const colors = determineColor(user);
@@ -145,7 +166,10 @@ const Layout = () => {
   return (
     <Container>
       <TopNav>
-        <Title>Home</Title>
+        <BrandContainer>
+          <LogoImg src={LogoInApp} alt="ZaggWrkt Logo" />
+          <BrandText>ZaggAthletics</BrandText>
+        </BrandContainer>
         <NavContent>
           <PointsDisplay colors={colors}>
             <PointsValue colors={colors}>{points.toLocaleString()}</PointsValue>
