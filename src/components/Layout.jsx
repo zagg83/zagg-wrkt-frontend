@@ -139,7 +139,7 @@ const NavContent = styled.div`
 `;
 
 const LogoImg = styled.img`
-  height: 60px;
+  height: 40px;
   width: auto;
   display: block;
 `;
