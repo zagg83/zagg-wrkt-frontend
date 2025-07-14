@@ -5,20 +5,28 @@ import './index.css';
 
 import Layout from './components/Layout';
 import Home from './pages/Home';
-import AddWorkout from './pages/AddWorkout';
-import WorkoutLog from './pages/WorkoutLog';
-import WorkoutDetail from './pages/WorkoutDetail';
-import Stats from './pages/Stats';
+
+const AddWorkout = React.lazy(() => import('./pages/AddWorkout'));
+const WorkoutLog = React.lazy(() => import('./pages/WorkoutLog'));
+const WorkoutDetail = React.lazy(() => import('./pages/WorkoutDetail'));
+const Stats = React.lazy(() => import('./pages/Stats'));
+const Ranks = React.lazy(() => import('./pages/Ranks'));
+const Signup = React.lazy(() => import('./pages/Signup'));
+const Login = React.lazy(() => import('./pages/Login'));
+const Templates = React.lazy(() => import('./pages/Templates'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+const VerifyNotice = React.lazy(() => import('./pages/VerifyNotice'));
+const Verify = React.lazy(() => import('./pages/Verify'));
+const ResendVerify = React.lazy(() => import('./pages/ResendVerify'));
+
 import { UserProvider } from './context/UserContext';
 import { ErrorProvider } from './context/ErrorContext';
-import Ranks from './pages/Ranks';
-import Signup from './pages/Signup';
-import Login from './pages/Login';
-import Templates from './pages/Templates';
-import Settings from './pages/Settings';
-import VerifyNotice from './pages/VerifyNotice';
-import Verify from './pages/Verify';
-import ResendVerify from './pages/ResendVerify';
+
+const suspense = Component => (
+  <React.Suspense fallback={<div>Loading...</div>}>
+    <Component />
+  </React.Suspense>
+);
 
 const router = createBrowserRouter([
   {
@@ -37,53 +45,53 @@ const router = createBrowserRouter([
       },
       {
         path: 'add-workout',
-        element: <AddWorkout />,
+        element: suspense(AddWorkout),
       },
       {
         path: 'workouts',
-        element: <WorkoutLog />,
+        element: suspense(WorkoutLog),
       },
       {
         path: 'workouts/:workoutId',
-        element: <WorkoutDetail />,
+        element: suspense(WorkoutDetail),
       },
       {
         path: 'stats',
-        element: <Stats />,
+        element: suspense(Stats),
       },
       {
         path: '/ranks',
-        element: <Ranks />,
+        element: suspense(Ranks),
       },
       {
         path: '/templates',
-        element: <Templates />,
+        element: suspense(Templates),
       },
       {
         path: '/settings',
-        element: <Settings />,
+        element: suspense(Settings),
       },
     ],
   },
   {
     path: 'login',
-    element: <Login />,
+    element: suspense(Login),
   },
   {
     path: 'signup',
-    element: <Signup />,
+    element: suspense(Signup),
   },
   {
     path: 'verify-notice',
-    element: <VerifyNotice />,
+    element: suspense(VerifyNotice),
   },
   {
     path: 'verify/:token',
-    element: <Verify />,
+    element: suspense(Verify),
   },
   {
     path: 'resend-verification',
-    element: <ResendVerify />,
+    element: suspense(ResendVerify),
   },
 ]);
 
