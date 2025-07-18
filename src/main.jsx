@@ -18,6 +18,13 @@ const Settings = React.lazy(() => import('./pages/Settings'));
 const VerifyNotice = React.lazy(() => import('./pages/VerifyNotice'));
 const Verify = React.lazy(() => import('./pages/Verify'));
 const ResendVerify = React.lazy(() => import('./pages/ResendVerify'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const TermsAndConditions = React.lazy(
+  () => import('./pages/TermsAndConditions')
+);
+const AcceptableUsePolicy = React.lazy(
+  () => import('./pages/AcceptableUsePolicy')
+);
 
 import { UserProvider } from './context/UserContext';
 import { ErrorProvider } from './context/ErrorContext';
@@ -70,6 +77,18 @@ const router = createBrowserRouter([
       {
         path: '/settings',
         element: suspense(Settings),
+      },
+      {
+        path: '/privacy',
+        element: suspense(PrivacyPolicy),
+      },
+      {
+        path: '/terms',
+        element: suspense(TermsAndConditions),
+      },
+      {
+        path: '/acceptable-use',
+        element: suspense(AcceptableUsePolicy),
       },
     ],
   },

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useUser } from '../context/UserContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Layout = styled.div`
   display: flex;
@@ -148,6 +148,52 @@ const ConfirmBox = styled.div`
   max-width: 350px;
   color: white;
   text-align: center;
+`;
+
+const PrivacyLink = styled(Link)`
+  display: inline-block;
+  margin-bottom: 1.2rem;
+  color: #7ecfff;
+  font-weight: 600;
+  font-size: 1.08rem;
+  text-decoration: underline;
+  &:hover {
+    color: #fff;
+    text-decoration: none;
+  }
+`;
+
+const TermsLink = styled(Link)`
+  display: inline-block;
+  margin-bottom: 1.2rem;
+  color: #7ecfff;
+  font-weight: 600;
+  font-size: 1.08rem;
+  text-decoration: underline;
+  &:hover {
+    color: #fff;
+    text-decoration: none;
+  }
+`;
+
+const AcceptableUseLink = styled(Link)`
+  display: inline-block;
+  margin-bottom: 1.2rem;
+  color: #7ecfff;
+  font-weight: 600;
+  font-size: 1.08rem;
+  text-decoration: underline;
+  &:hover {
+    color: #fff;
+    text-decoration: none;
+  }
+`;
+
+const LegalLinks = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: 1.2rem;
 `;
 
 const Settings = () => {
@@ -312,7 +358,13 @@ const Settings = () => {
         {selected === 'Privacy and safety' && (
           <>
             <SectionTitle>Privacy & Safety</SectionTitle>
-            <SectionDesc>Privacy settings coming soon.</SectionDesc>
+            <LegalLinks>
+              <PrivacyLink to="/privacy">View Privacy Policy</PrivacyLink>
+              <TermsLink to="/terms">View Terms & Conditions</TermsLink>
+              <AcceptableUseLink to="/acceptable-use">
+                View Acceptable Use Policy
+              </AcceptableUseLink>
+            </LegalLinks>
           </>
         )}
         {selected === 'Notifications' && (
@@ -324,7 +376,9 @@ const Settings = () => {
         {selected === 'Help Center' && (
           <>
             <SectionTitle>Help Center</SectionTitle>
-            <SectionDesc>For help, contact zaggsites@gmail.com</SectionDesc>
+            <SectionDesc>
+              For help, contact support@zaggathletics.com
+            </SectionDesc>
           </>
         )}
         {showConfirm && (
