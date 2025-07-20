@@ -662,7 +662,7 @@ const AddWorkout = () => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            name: new Date(),
+            name: '', // need implement
             exercises: exercisesToAdd,
           }),
         }

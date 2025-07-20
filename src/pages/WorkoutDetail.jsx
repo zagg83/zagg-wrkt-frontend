@@ -19,6 +19,17 @@ const float = keyframes`
   }
 `;
 
+const fadeInScale = keyframes`
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+`;
+
 const Container = styled.div`
   padding: 1rem;
   padding-bottom: 80px;
@@ -99,14 +110,20 @@ const ExerciseName = styled.h3`
 const SetList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.2rem;
 `;
 
 const SetRow = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 1fr 3fr 3fr 60px;
   gap: 1rem;
   align-items: center;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+  transition: none;
+  cursor: default;
+  min-height: 48px;
 `;
 
 const Input = styled.input`
@@ -392,6 +409,60 @@ const CloseButton = styled.button`
   &:hover {
     opacity: 1;
   }
+`;
+
+const PointsBadge = styled.span`
+  display: inline-block;
+  background: #23243a;
+  color: #7ecfff;
+  border-radius: 8px;
+  padding: 0.18em 0.7em;
+  font-size: 0.98em;
+  font-weight: 600;
+  margin-left: 0.5em;
+  white-space: nowrap;
+  vertical-align: middle;
+`;
+
+const Tooltip = styled.div`
+  visibility: hidden;
+  opacity: 0;
+  background: #23243a;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 0.5em 1em;
+  position: absolute;
+  z-index: 10;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.95em;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px #0006;
+  transition: opacity 0.18s;
+  pointer-events: none;
+`;
+
+const PointsBadgeWrapper = styled.span`
+  position: relative;
+  display: inline-block;
+  animation: ${fadeInScale} 0.22s cubic-bezier(0.4, 0.8, 0.4, 1) both;
+  &:hover ${Tooltip} {
+    visibility: visible;
+    opacity: 1;
+  }
+`;
+
+const SetUnit = styled.div`
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  margin-bottom: 0.5rem;
+  padding: 0.2rem 0.5rem 0.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 `;
 
 const WorkoutDetail = () => {
@@ -747,9 +818,6 @@ const WorkoutDetail = () => {
         })),
       }));
 
-      // Add to pending changes instead of immediately saving
-      setPendingChanges(prev => new Set([...prev, setId]));
-
       // Save immediately for better reliability
       const token = localStorage.getItem('token');
       const res = await fetch(
@@ -768,6 +836,17 @@ const WorkoutDetail = () => {
       if (!res.ok) {
         throw new Error('Failed to update set');
       }
+      const updatetSet = await res.json();
+      // Now with new points too
+      setWorkout(prevWorkout => ({
+        ...prevWorkout,
+        exercises: prevWorkout.exercises.map(exercise => ({
+          ...exercise,
+          sets: exercise.sets.map(set =>
+            set.id === setId ? { ...set, points: updatetSet.points } : set
+          ),
+        })),
+      }));
 
       // Remove from pending changes after successful save
       setPendingChanges(prev => {
@@ -892,7 +971,16 @@ const WorkoutDetail = () => {
               </RemoveExerciseButton>
               <ExerciseName>{exercise.template.name}</ExerciseName>
               <SetList>
-                <SetRow>
+                <SetRow
+                  style={{
+                    background: 'none',
+                    borderRadius: 0,
+                    boxShadow: 'none',
+                    cursor: 'default',
+                    minHeight: 'auto',
+                    pointerEvents: 'none',
+                  }}
+                >
                   <Label>Set</Label>
                   <Label>Reps</Label>
                   <Label>Weight (kg)</Label>
@@ -900,67 +988,95 @@ const WorkoutDetail = () => {
                 </SetRow>
 
                 {exercise.sets.map((set, index) => (
-                  <SetRow key={index}>
-                    <Label>{index + 1}</Label>
-                    <Input
-                      type="number"
-                      placeholder="Reps"
-                      value={set.reps || ''}
-                      onChange={e => {
-                        // Update local state immediately for responsive UI
-                        setWorkout(prevWorkout => ({
-                          ...prevWorkout,
-                          exercises: prevWorkout.exercises.map(ex => ({
-                            ...ex,
-                            sets: ex.sets.map(s =>
-                              s.id === set.id
-                                ? { ...s, reps: parseInt(e.target.value) || 0 }
-                                : s
-                            ),
-                          })),
-                        }));
-                        // Track this change as pending
-                        setPendingChanges(prev => new Set([...prev, set.id]));
+                  <SetUnit key={index}>
+                    <SetRow>
+                      <Label>{index + 1}</Label>
+                      <Input
+                        type="number"
+                        placeholder="Reps"
+                        value={set.reps || ''}
+                        onChange={e => {
+                          setWorkout(prevWorkout => ({
+                            ...prevWorkout,
+                            exercises: prevWorkout.exercises.map(ex => ({
+                              ...ex,
+                              sets: ex.sets.map(s =>
+                                s.id === set.id
+                                  ? {
+                                      ...s,
+                                      reps: parseInt(e.target.value) || 0,
+                                    }
+                                  : s
+                              ),
+                            })),
+                          }));
+                          setPendingChanges(prev => new Set([...prev, set.id]));
+                        }}
+                        onBlur={e =>
+                          handleInputBlur(set.id, 'reps', e.target.value)
+                        }
+                        colors={colors}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Weight"
+                        value={set.weight || ''}
+                        onChange={e => {
+                          setWorkout(prevWorkout => ({
+                            ...prevWorkout,
+                            exercises: prevWorkout.exercises.map(ex => ({
+                              ...ex,
+                              sets: ex.sets.map(s =>
+                                s.id === set.id
+                                  ? {
+                                      ...s,
+                                      weight: parseInt(e.target.value) || 0,
+                                    }
+                                  : s
+                              ),
+                            })),
+                          }));
+                          setPendingChanges(prev => new Set([...prev, set.id]));
+                        }}
+                        onBlur={e =>
+                          handleInputBlur(set.id, 'weight', e.target.value)
+                        }
+                        colors={colors}
+                      />
+                      <RemoveSetButton
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleRemoveSet(exercise.id, set.id);
+                        }}
+                      >
+                        ×
+                      </RemoveSetButton>
+                    </SetRow>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        marginTop: '0.2em',
                       }}
-                      onBlur={e =>
-                        handleInputBlur(set.id, 'reps', e.target.value)
-                      }
-                      colors={colors}
-                    />
-                    <Input
-                      type="number"
-                      placeholder="Weight"
-                      value={set.weight || ''}
-                      onChange={e => {
-                        // Update local state immediately for responsive UI
-                        setWorkout(prevWorkout => ({
-                          ...prevWorkout,
-                          exercises: prevWorkout.exercises.map(ex => ({
-                            ...ex,
-                            sets: ex.sets.map(s =>
-                              s.id === set.id
-                                ? {
-                                    ...s,
-                                    weight: parseInt(e.target.value) || 0,
-                                  }
-                                : s
-                            ),
-                          })),
-                        }));
-                        // Track this change as pending
-                        setPendingChanges(prev => new Set([...prev, set.id]));
-                      }}
-                      onBlur={e =>
-                        handleInputBlur(set.id, 'weight', e.target.value)
-                      }
-                      colors={colors}
-                    />
-                    <RemoveSetButton
-                      onClick={() => handleRemoveSet(exercise.id, set.id)}
                     >
-                      ×
-                    </RemoveSetButton>
-                  </SetRow>
+                      <PointsBadge>
+                        <span
+                          role="img"
+                          aria-label="points"
+                          style={{
+                            marginRight: '0.3em',
+                            fontSize: '1em',
+                            verticalAlign: 'middle',
+                          }}
+                        >
+                          🏆
+                        </span>
+                        {set.points !== undefined && set.points !== null
+                          ? `+${set.points}`
+                          : '+0'}
+                      </PointsBadge>
+                    </div>
+                  </SetUnit>
                 ))}
                 <AddSetButton
                   onClick={() => handleAddSet(exercise.id)}
