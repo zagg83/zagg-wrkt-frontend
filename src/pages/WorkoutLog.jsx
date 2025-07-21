@@ -21,6 +21,7 @@ import {
 import { useUser } from '../context/UserContext';
 import determineColor from '../util/determineColor';
 import { jwtDecode } from 'jwt-decode';
+import { createGlobalStyle } from 'styled-components';
 
 // Main container with padding for bottom navigation
 const Container = styled.div`
@@ -73,6 +74,11 @@ const Calendar = styled.div`
   padding: 1rem;
   border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+
+  @media (max-width: 450px) {
+    padding: 0.3rem;
+    gap: 0.18rem;
+  }
 `;
 
 // Week day headers (Sun, Mon, etc.)
@@ -83,6 +89,11 @@ const WeekDay = styled.div`
   padding: 0.5rem;
   text-transform: uppercase;
   font-weight: 600;
+
+  @media (max-width: 450px) {
+    font-size: 0.48rem;
+    padding: 0.18rem;
+  }
 `;
 
 // Individual day cell with workout indicators
@@ -132,6 +143,13 @@ const Day = styled.div`
   &:active {
     transform: translateY(0);
   }
+
+  @media (max-width: 450px) {
+    padding: 0.05rem;
+    border-radius: 3px;
+    min-height: 28px;
+    font-size: 0.7rem;
+  }
 `;
 
 // Day number with special styling for today
@@ -150,6 +168,10 @@ const WorkoutIndicator = styled.div`
   margin-top: 0.5rem;
   font-size: 0.7rem;
   color: ${props => props.colors.main};
+
+  @media (max-width: 450px) {
+    display: none;
+  }
 `;
 
 const ViewToggle = styled.div`
@@ -391,215 +413,219 @@ const WorkoutLog = () => {
   }
 
   return (
-    <Container>
-      <Header>
-        <NavigationButton onClick={handlePrevMonth}>←</NavigationButton>
-        <MonthTitle>{format(currentDate, 'MMMM yyyy')}</MonthTitle>
-        <NavigationButton onClick={handleNextMonth}>→</NavigationButton>
-      </Header>
+    <>
+      <Container>
+        <Header>
+          <NavigationButton onClick={handlePrevMonth}>←</NavigationButton>
+          <MonthTitle>{format(currentDate, 'MMMM yyyy')}</MonthTitle>
+          <NavigationButton onClick={handleNextMonth}>→</NavigationButton>
+        </Header>
 
-      <ViewToggle>
-        <ToggleButton
-          $isActive={viewMode === 'calendar'}
-          onClick={() => setViewMode('calendar')}
-          colors={colors}
-        >
-          Calendar
-        </ToggleButton>
-        <ToggleButton
-          $isActive={viewMode === 'list'}
-          onClick={() => setViewMode('list')}
-          colors={colors}
-        >
-          All Workouts
-        </ToggleButton>
-      </ViewToggle>
+        <ViewToggle>
+          <ToggleButton
+            $isActive={viewMode === 'calendar'}
+            onClick={() => setViewMode('calendar')}
+            colors={colors}
+          >
+            Calendar
+          </ToggleButton>
+          <ToggleButton
+            $isActive={viewMode === 'list'}
+            onClick={() => setViewMode('list')}
+            colors={colors}
+          >
+            All Workouts
+          </ToggleButton>
+        </ViewToggle>
 
-      {viewMode === 'calendar' ? (
-        <Calendar>
-          {weekDays.map(day => (
-            <WeekDay key={day}>{day}</WeekDay>
-          ))}
-          {allDays.map((date, index) => {
-            const formattedDate = format(date, 'yyyy-MM-dd');
-            const workout = workoutsByDate[formattedDate] || null;
-            return (
-              <Day
-                key={index}
-                $isCurrentMonth={isSameMonth(date, currentDate)}
-                $isToday={isSameDay(date, new Date())}
-                $hasWorkout={workout}
-                colors={colors}
-                onClick={() => handleDayClick(date)}
-              >
-                <DayNumber $isToday={isSameDay(date, new Date())}>
-                  {format(date, 'd')}
-                </DayNumber>
-                {workout && (
-                  <WorkoutIndicator colors={colors}>
-                    <p>{workout.name}</p>
-                    <p>{workout.exercises} exercises</p>
-                  </WorkoutIndicator>
-                )}
-              </Day>
-            );
-          })}
-        </Calendar>
-      ) : (
-        <WorkoutListContainer>
-          {categorizedWorkouts.thisWeek.length > 0 && (
-            <>
-              <TimelineHeader>This Week</TimelineHeader>
-              {categorizedWorkouts.thisWeek.map(workout => (
-                <WorkoutListItem
-                  key={workout.id}
-                  onClick={() => navigate(`/workouts/${workout.id}`)}
+        {viewMode === 'calendar' ? (
+          <Calendar>
+            {weekDays.map(day => (
+              <WeekDay key={day}>{day}</WeekDay>
+            ))}
+            {allDays.map((date, index) => {
+              const formattedDate = format(date, 'yyyy-MM-dd');
+              const workout = workoutsByDate[formattedDate] || null;
+              return (
+                <Day
+                  key={index}
+                  $isCurrentMonth={isSameMonth(date, currentDate)}
+                  $isToday={isSameDay(date, new Date())}
+                  $hasWorkout={workout}
                   colors={colors}
+                  onClick={() => handleDayClick(date)}
                 >
-                  <WorkoutListName>{workout.name}</WorkoutListName>
-                  <WorkoutListDate colors={colors}>
-                    Date:{' '}
-                    {format(
-                      new Date(workout.createdAt),
-                      'MMM d, yyyy - h:mm a'
-                    )}
-                  </WorkoutListDate>
-                  <WorkoutListInfo>
-                    {workout.exercises.length} exercises
-                  </WorkoutListInfo>
-                </WorkoutListItem>
-              ))}
-            </>
-          )}
-          {categorizedWorkouts.lastWeek.length > 0 && (
-            <>
-              <TimelineHeader>Last Week</TimelineHeader>
-              {categorizedWorkouts.lastWeek.map(workout => (
-                <WorkoutListItem
-                  key={workout.id}
-                  onClick={() => navigate(`/workouts/${workout.id}`)}
-                  colors={colors}
-                >
-                  <WorkoutListName>{workout.name}</WorkoutListName>
-                  <WorkoutListDate colors={colors}>
-                    Date:{' '}
-                    {format(
-                      new Date(workout.createdAt),
-                      'MMM d, yyyy - h:mm a'
-                    )}
-                  </WorkoutListDate>
-                  <WorkoutListInfo>
-                    {workout.exercises.length} exercises
-                  </WorkoutListInfo>
-                </WorkoutListItem>
-              ))}
-            </>
-          )}
-          {categorizedWorkouts.thisMonth.length > 0 && (
-            <>
-              <TimelineHeader>This Month</TimelineHeader>
-              {categorizedWorkouts.thisMonth.map(workout => (
-                <WorkoutListItem
-                  key={workout.id}
-                  onClick={() => navigate(`/workouts/${workout.id}`)}
-                  colors={colors}
-                >
-                  <WorkoutListName>{workout.name}</WorkoutListName>
-                  <WorkoutListDate colors={colors}>
-                    Date:{' '}
-                    {format(
-                      new Date(workout.createdAt),
-                      'MMM d, yyyy - h:mm a'
-                    )}
-                  </WorkoutListDate>
-                  <WorkoutListInfo>
-                    {workout.exercises.length} exercises
-                  </WorkoutListInfo>
-                </WorkoutListItem>
-              ))}
-            </>
-          )}
-          {categorizedWorkouts.lastMonth.length > 0 && (
-            <>
-              <TimelineHeader>Last Month</TimelineHeader>
-              {categorizedWorkouts.lastMonth.map(workout => (
-                <WorkoutListItem
-                  key={workout.id}
-                  onClick={() => navigate(`/workouts/${workout.id}`)}
-                  colors={colors}
-                >
-                  <WorkoutListName>{workout.name}</WorkoutListName>
-                  <WorkoutListDate colors={colors}>
-                    Date:{' '}
-                    {format(
-                      new Date(workout.createdAt),
-                      'MMM d, yyyy - h:mm a'
-                    )}
-                  </WorkoutListDate>
-                  <WorkoutListInfo>
-                    {workout.exercises.length} exercises
-                  </WorkoutListInfo>
-                </WorkoutListItem>
-              ))}
-            </>
-          )}
-          {categorizedWorkouts.earlierThisYear.length > 0 && (
-            <>
-              <TimelineHeader>Earlier This Year</TimelineHeader>
-              {categorizedWorkouts.earlierThisYear.map(workout => (
-                <WorkoutListItem
-                  key={workout.id}
-                  onClick={() => navigate(`/workouts/${workout.id}`)}
-                  colors={colors}
-                >
-                  <WorkoutListName>{workout.name}</WorkoutListName>
-                  <WorkoutListDate colors={colors}>
-                    Date:{' '}
-                    {format(
-                      new Date(workout.createdAt),
-                      'MMM d, yyyy - h:mm a'
-                    )}
-                  </WorkoutListDate>
-                  <WorkoutListInfo>
-                    {workout.exercises.length} exercises
-                  </WorkoutListInfo>
-                </WorkoutListItem>
-              ))}
-            </>
-          )}
-          {Object.entries(categorizedWorkouts.earlier).map(
-            ([year, workoutsInYear]) => (
-              <React.Fragment key={year}>
-                {workoutsInYear.length > 0 && (
-                  <>
-                    <TimelineHeader>{year}</TimelineHeader>
-                    {workoutsInYear.map(workout => (
-                      <WorkoutListItem
-                        key={workout.id}
-                        onClick={() => navigate(`/workouts/${workout.id}`)}
-                        colors={colors}
-                      >
-                        <WorkoutListName>{workout.name}</WorkoutListName>
-                        <WorkoutListDate colors={colors}>
-                          Date:{' '}
-                          {format(
-                            new Date(workout.createdAt),
-                            'MMM d, yyyy - h:mm a'
-                          )}
-                        </WorkoutListDate>
-                        <WorkoutListInfo>
-                          {workout.exercises.length} exercises
-                        </WorkoutListInfo>
-                      </WorkoutListItem>
-                    ))}
-                  </>
-                )}
-              </React.Fragment>
-            )
-          )}
-        </WorkoutListContainer>
-      )}
-    </Container>
+                  <DayNumber $isToday={isSameDay(date, new Date())}>
+                    {format(date, 'd')}
+                  </DayNumber>
+                  {workout && (
+                    <WorkoutIndicator colors={colors}>
+                      <span className="calendar-workout-name">
+                        {workout.name}
+                      </span>
+                      <span>{workout.exercises} exercises</span>
+                    </WorkoutIndicator>
+                  )}
+                </Day>
+              );
+            })}
+          </Calendar>
+        ) : (
+          <WorkoutListContainer>
+            {categorizedWorkouts.thisWeek.length > 0 && (
+              <>
+                <TimelineHeader>This Week</TimelineHeader>
+                {categorizedWorkouts.thisWeek.map(workout => (
+                  <WorkoutListItem
+                    key={workout.id}
+                    onClick={() => navigate(`/workouts/${workout.id}`)}
+                    colors={colors}
+                  >
+                    <WorkoutListName>{workout.name}</WorkoutListName>
+                    <WorkoutListDate colors={colors}>
+                      Date:{' '}
+                      {format(
+                        new Date(workout.createdAt),
+                        'MMM d, yyyy - h:mm a'
+                      )}
+                    </WorkoutListDate>
+                    <WorkoutListInfo>
+                      {workout.exercises.length} exercises
+                    </WorkoutListInfo>
+                  </WorkoutListItem>
+                ))}
+              </>
+            )}
+            {categorizedWorkouts.lastWeek.length > 0 && (
+              <>
+                <TimelineHeader>Last Week</TimelineHeader>
+                {categorizedWorkouts.lastWeek.map(workout => (
+                  <WorkoutListItem
+                    key={workout.id}
+                    onClick={() => navigate(`/workouts/${workout.id}`)}
+                    colors={colors}
+                  >
+                    <WorkoutListName>{workout.name}</WorkoutListName>
+                    <WorkoutListDate colors={colors}>
+                      Date:{' '}
+                      {format(
+                        new Date(workout.createdAt),
+                        'MMM d, yyyy - h:mm a'
+                      )}
+                    </WorkoutListDate>
+                    <WorkoutListInfo>
+                      {workout.exercises.length} exercises
+                    </WorkoutListInfo>
+                  </WorkoutListItem>
+                ))}
+              </>
+            )}
+            {categorizedWorkouts.thisMonth.length > 0 && (
+              <>
+                <TimelineHeader>This Month</TimelineHeader>
+                {categorizedWorkouts.thisMonth.map(workout => (
+                  <WorkoutListItem
+                    key={workout.id}
+                    onClick={() => navigate(`/workouts/${workout.id}`)}
+                    colors={colors}
+                  >
+                    <WorkoutListName>{workout.name}</WorkoutListName>
+                    <WorkoutListDate colors={colors}>
+                      Date:{' '}
+                      {format(
+                        new Date(workout.createdAt),
+                        'MMM d, yyyy - h:mm a'
+                      )}
+                    </WorkoutListDate>
+                    <WorkoutListInfo>
+                      {workout.exercises.length} exercises
+                    </WorkoutListInfo>
+                  </WorkoutListItem>
+                ))}
+              </>
+            )}
+            {categorizedWorkouts.lastMonth.length > 0 && (
+              <>
+                <TimelineHeader>Last Month</TimelineHeader>
+                {categorizedWorkouts.lastMonth.map(workout => (
+                  <WorkoutListItem
+                    key={workout.id}
+                    onClick={() => navigate(`/workouts/${workout.id}`)}
+                    colors={colors}
+                  >
+                    <WorkoutListName>{workout.name}</WorkoutListName>
+                    <WorkoutListDate colors={colors}>
+                      Date:{' '}
+                      {format(
+                        new Date(workout.createdAt),
+                        'MMM d, yyyy - h:mm a'
+                      )}
+                    </WorkoutListDate>
+                    <WorkoutListInfo>
+                      {workout.exercises.length} exercises
+                    </WorkoutListInfo>
+                  </WorkoutListItem>
+                ))}
+              </>
+            )}
+            {categorizedWorkouts.earlierThisYear.length > 0 && (
+              <>
+                <TimelineHeader>Earlier This Year</TimelineHeader>
+                {categorizedWorkouts.earlierThisYear.map(workout => (
+                  <WorkoutListItem
+                    key={workout.id}
+                    onClick={() => navigate(`/workouts/${workout.id}`)}
+                    colors={colors}
+                  >
+                    <WorkoutListName>{workout.name}</WorkoutListName>
+                    <WorkoutListDate colors={colors}>
+                      Date:{' '}
+                      {format(
+                        new Date(workout.createdAt),
+                        'MMM d, yyyy - h:mm a'
+                      )}
+                    </WorkoutListDate>
+                    <WorkoutListInfo>
+                      {workout.exercises.length} exercises
+                    </WorkoutListInfo>
+                  </WorkoutListItem>
+                ))}
+              </>
+            )}
+            {Object.entries(categorizedWorkouts.earlier).map(
+              ([year, workoutsInYear]) => (
+                <React.Fragment key={year}>
+                  {workoutsInYear.length > 0 && (
+                    <>
+                      <TimelineHeader>{year}</TimelineHeader>
+                      {workoutsInYear.map(workout => (
+                        <WorkoutListItem
+                          key={workout.id}
+                          onClick={() => navigate(`/workouts/${workout.id}`)}
+                          colors={colors}
+                        >
+                          <WorkoutListName>{workout.name}</WorkoutListName>
+                          <WorkoutListDate colors={colors}>
+                            Date:{' '}
+                            {format(
+                              new Date(workout.createdAt),
+                              'MMM d, yyyy - h:mm a'
+                            )}
+                          </WorkoutListDate>
+                          <WorkoutListInfo>
+                            {workout.exercises.length} exercises
+                          </WorkoutListInfo>
+                        </WorkoutListItem>
+                      ))}
+                    </>
+                  )}
+                </React.Fragment>
+              )
+            )}
+          </WorkoutListContainer>
+        )}
+      </Container>
+    </>
   );
 };
 

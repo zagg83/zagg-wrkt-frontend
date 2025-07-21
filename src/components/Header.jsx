@@ -19,6 +19,9 @@ const UserInfo = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+  @media (max-width: 360px) {
+    display: block;
+  }
 `;
 
 const ProfileSection = styled.div`
