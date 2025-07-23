@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { Bar, Line, Pie } from 'react-chartjs-2';
+import { format } from 'date-fns';
 import { jwtDecode } from 'jwt-decode';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 
 const Container = styled.div`
   background: #23243a;
@@ -12,7 +26,7 @@ const Container = styled.div`
   margin: 0 auto;
 `;
 
-const Title = styled.h2`
+const Header = styled.h2`
   font-size: 1.4rem;
   color: #7ecfff;
   margin-bottom: 1.5rem;
@@ -163,6 +177,49 @@ const categories = [
     color: '#9C27B0',
   },
 ];
+const Section = styled.section`
+  margin-bottom: 2.5rem;
+  background: #23243a;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px #0002;
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.3rem;
+  margin-bottom: 1.2rem;
+  color: #7ecfff;
+  letter-spacing: 0.02em;
+`;
+const ChartWrapper = styled.div`
+  width: 100%;
+  min-height: 220px;
+  margin-bottom: 1rem;
+`;
+
+const chartOptions = {
+  plugins: {
+    legend: { labels: { color: 'white' } },
+    tooltip: {
+      backgroundColor: '#23243a',
+      titleColor: '#fff',
+      bodyColor: '#fff',
+    },
+  },
+  scales: {
+    x: {
+      ticks: { color: 'rgba(255, 255, 255, 0.8)' },
+      grid: { color: 'rgba(255, 255, 255, 0.08)' },
+    },
+    y: {
+      ticks: { color: 'rgba(255,255,255,0.8)' },
+      grid: { color: 'rgba(255, 255, 255, 0.08)' },
+      beginAtZero: true,
+    },
+  },
+  maintainAspectRatio: false,
+  responsive: true,
+};
 
 const DEFAULT_EXERCISE_NAME = 'Barbell Bench Press';
 
@@ -173,6 +230,10 @@ const ExerciseStats = () => {
   const [activeExercise, setActiveExercise] = useState(null);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
+  const [chartData, setChartData] = useState({
+    labels: [],
+    datasets: [],
+  });
   const [error, setError] = useState('');
 
   // Fetch exercises by category or search
@@ -244,6 +305,11 @@ const ExerciseStats = () => {
       let best1RM = 0;
       let lastPerformed = null;
       let mostReps = 0;
+      // For charts:
+      let repsArr = [];
+      let pointsArr = [];
+      let labels = [];
+
       filteredSets.forEach(set => {
         totalReps += set.reps || 0;
         if (set.weight > maxWeight) maxWeight = set.weight;
@@ -256,6 +322,22 @@ const ExerciseStats = () => {
         ) {
           lastPerformed = set.createdAt;
         }
+        repsArr.push(set.reps);
+        pointsArr.push(set.points);
+        labels.push(format(new Date(set.createdAt), 'M/d/yy'));
+      });
+
+      const isBodyWeight = exercise.categories.includes('BODYWEIGHT');
+      setChartData({
+        datasets: [
+          {
+            label: isBodyWeight ? 'Reps' : 'Points',
+            data: isBodyWeight ? repsArr : pointsArr,
+            backgroundColor: '#42A5F5',
+            borderRadius: 8,
+          },
+        ],
+        labels: labels,
       });
       setStats({
         'Most Reps in a Set': mostReps || '-',
@@ -300,6 +382,7 @@ const ExerciseStats = () => {
   const handleExerciseClick = exercise => {
     setActiveExercise(exercise);
     setStats(null);
+    console.log(exercise);
     fetchStats(exercise);
   };
 
@@ -318,7 +401,7 @@ const ExerciseStats = () => {
 
   return (
     <Container>
-      <Title>Exercise Stats</Title>
+      <Header>Exercise Stats</Header>
       <SearchBar>
         <input
           type="text"
@@ -368,7 +451,7 @@ const ExerciseStats = () => {
       )}
       {/* Always render the output area, just update values */}
       <div style={{ minHeight: 240, marginTop: 24, position: 'relative' }}>
-        <Title
+        <Header
           style={{
             fontSize: '1.15rem',
             marginBottom: 18,
@@ -377,16 +460,25 @@ const ExerciseStats = () => {
           }}
         >
           {activeExercise ? activeExercise.name : DEFAULT_EXERCISE_NAME}
-        </Title>
+        </Header>
         {stats ? (
-          <StatGrid>
-            {Object.entries(stats).map(([label, value], i) => (
-              <StatCard key={i}>
-                <StatValue>{value}</StatValue>
-                <StatLabel>{label}</StatLabel>
-              </StatCard>
-            ))}
-          </StatGrid>
+          <>
+            <StatGrid>
+              {Object.entries(stats).map(([label, value], i) => (
+                <StatCard key={i}>
+                  <StatValue>{value}</StatValue>
+                  <StatLabel>{label}</StatLabel>
+                </StatCard>
+              ))}
+            </StatGrid>
+            <Section>
+              <SectionTitle>All-Time Progress</SectionTitle>
+
+              <ChartWrapper style={{ height: 220 }}>
+                <Line data={chartData} options={chartOptions} />
+              </ChartWrapper>
+            </Section>
+          </>
         ) : (
           <div
             style={{
