@@ -3,13 +3,13 @@ import styled from 'styled-components';
 import { useUser } from '../context/UserContext';
 
 const ranks = [
-  { name: 'Bronze', min: 0, max: 699, color: '#cd7f32', icon: '🥉' },
-  { name: 'Silver', min: 700, max: 1299, color: '#c0c0c0', icon: '🥈' },
-  { name: 'Gold', min: 1300, max: 1999, color: '#ffd700', icon: '🥇' },
-  { name: 'Diamond', min: 2000, max: 2799, color: '#00bfff', icon: '💎' },
-  { name: 'Master', min: 2800, max: 3799, color: '#8d6e63', icon: '👑' },
-  { name: 'Grandmaster', min: 3800, max: 4999, color: '#e53935', icon: '🔥' },
-  { name: 'Legend', min: 5000, max: Infinity, color: '#7c4dff', icon: '🌟' },
+  { name: 'Bronze', min: 0, max: 499, color: '#cd7f32', icon: '🥉' },
+  { name: 'Silver', min: 500, max: 749, color: '#c0c0c0', icon: '🥈' },
+  { name: 'Gold', min: 750, max: 999, color: '#ffd700', icon: '🥇' },
+  { name: 'Diamond', min: 1000, max: 1499, color: '#00bfff', icon: '💎' },
+  { name: 'Master', min: 1500, max: 1999, color: '#8d6e63', icon: '👑' },
+  { name: 'Grandmaster', min: 2000, max: 2499, color: '#e53935', icon: '🔥' },
+  { name: 'Legend', min: 2500, max: Infinity, color: '#7c4dff', icon: '🌟' },
 ];
 
 const Container = styled.div`
