@@ -315,19 +315,6 @@ const Settings = () => {
                 </RowLeft>
                 <Arrow>›</Arrow>
               </ActionRow>
-              <ActionRow onClick={() => {}}>
-                <RowLeft>
-                  <RowIcon>⬇️</RowIcon>
-                  <RowText>
-                    <RowTitle>Download an archive of your data</RowTitle>
-                    <RowDesc>
-                      Get insights into the type of information stored for your
-                      account.
-                    </RowDesc>
-                  </RowText>
-                </RowLeft>
-                <Arrow>›</Arrow>
-              </ActionRow>
               <ActionRow onClick={handleLogout}>
                 <RowLeft>
                   <RowIcon>🚪</RowIcon>
