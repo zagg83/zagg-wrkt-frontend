@@ -703,15 +703,28 @@ const WorkoutDetail = () => {
       }
 
       const exercises = await response.json();
-      for (let i = exercises.length - 1; i >= 0; i--) {
+      console.log(exercises);
+      let isNext = false;
+      for (let i = 0; i < exercises.length; i++) {
         const exercise = exercises[i];
-        if (exercise.template.id === templateId && exercise.id !== currExId) {
-          if (exercise.sets && exercise.sets.length > 0) {
-            exercise.sets = [...exercise.sets].sort(
-              (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
-            );
+        console.log('Ex ID:');
+        console.log(exercise.id, currExId);
+        console.log(isNext);
+        if (isNext) {
+          console.log('Temp Id:');
+          console.log(exercise.template.id, templateId);
+
+          if (exercise.template.id === templateId) {
+            if (exercise.sets && exercise.sets.length > 0) {
+              exercise.sets = [...exercise.sets].sort(
+                (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+              );
+            }
+            return exercise;
           }
-          return exercise;
+        }
+        if (exercise.id == currExId) {
+          isNext = true;
         }
       }
       return null;
