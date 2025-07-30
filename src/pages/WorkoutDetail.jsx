@@ -603,7 +603,6 @@ const WorkoutDetail = () => {
             }
           });
         });
-
         if (!setData) return;
 
         const res = await fetch(
@@ -633,7 +632,7 @@ const WorkoutDetail = () => {
     } finally {
       setIsSaving(false);
     }
-  }, []);
+  }, [isSaving, pendingChanges, workout, user.id]);
 
   const handleDeleteWorkout = async () => {
     try {
@@ -703,17 +702,10 @@ const WorkoutDetail = () => {
       }
 
       const exercises = await response.json();
-      console.log(exercises);
       let isNext = false;
       for (let i = 0; i < exercises.length; i++) {
         const exercise = exercises[i];
-        console.log('Ex ID:');
-        console.log(exercise.id, currExId);
-        console.log(isNext);
         if (isNext) {
-          console.log('Temp Id:');
-          console.log(exercise.template.id, templateId);
-
           if (exercise.template.id === templateId) {
             if (exercise.sets && exercise.sets.length > 0) {
               exercise.sets = [...exercise.sets].sort(
@@ -966,7 +958,6 @@ const WorkoutDetail = () => {
         return e.returnValue;
       }
     };
-    console.log('Hi');
 
     window.addEventListener('beforeunload', handleBeforeUnload);
 
@@ -1062,11 +1053,11 @@ const WorkoutDetail = () => {
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                  <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
                   <g
                     id="SVGRepo_tracerCarrier"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   ></g>
                   <g id="SVGRepo_iconCarrier">
                     <path d="M5.755,20.283,4,8H20L18.245,20.283A2,2,0,0,1,16.265,22H7.735A2,2,0,0,1,5.755,20.283ZM21,4H16V3a1,1,0,0,0-1-1H9A1,1,0,0,0,8,3V4H3A1,1,0,0,0,3,6H21a1,1,0,0,0,0-2Z"></path>

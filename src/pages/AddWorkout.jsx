@@ -607,7 +607,6 @@ const AddWorkout = () => {
         throw new Error('Failed to fetch exercises');
       }
       const data = await response.json();
-      console.log(data);
       return setExercises(data);
     } catch (error) {
       showError(error.message || 'Error fetching exercises');

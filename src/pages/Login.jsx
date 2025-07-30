@@ -147,7 +147,6 @@ const Login = () => {
         body: JSON.stringify({ email, password }),
       });
       const token = await response.json();
-      console.log(token);
       if (!response.ok || !token) {
         setError(token.error || 'Login failed');
         setLoading(false);
@@ -178,7 +177,6 @@ const Login = () => {
         console.log(error);
         setError(error);
       }
-      console.log(token);
       if (token) {
         localStorage.setItem('token', token);
         navigate('/');
