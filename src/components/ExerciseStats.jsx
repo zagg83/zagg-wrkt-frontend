@@ -297,6 +297,8 @@ const ExerciseStats = () => {
           set.exercise.template &&
           set.exercise.template.id === exercise.id
       );
+      console.log('filteredSets');
+      console.log(filteredSets);
       // Aggregate stats
       let totalSets = filteredSets.length;
       let totalReps = 0;
@@ -382,7 +384,6 @@ const ExerciseStats = () => {
   const handleExerciseClick = exercise => {
     setActiveExercise(exercise);
     setStats(null);
-    console.log(exercise);
     fetchStats(exercise);
   };
 
