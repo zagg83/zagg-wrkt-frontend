@@ -100,7 +100,6 @@ const Header = () => {
     <HeaderContainer colors={colors}>
       <UserInfo>
         <ProfileSection>
-          <ProfilePic to={'/settings'} />
           <Greeting colors={colors}>
             <h1>
               Hello <span>{username}</span>

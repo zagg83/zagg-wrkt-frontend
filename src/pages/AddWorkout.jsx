@@ -24,7 +24,7 @@ const SectionTitle = styled.h2`
 `;
 
 const TemplateSelect = styled.select`
-  width: 100%;
+  flex: 1;
   padding: 0.75rem;
   background-color: #2a2a2a;
   border: none;
