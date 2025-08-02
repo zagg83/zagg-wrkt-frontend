@@ -529,7 +529,6 @@ const AddWorkout = () => {
       icon: '🦵',
       color: '#F44336',
     },
-    { name: 'Core', value: 'CORE', icon: '🧘', color: '#FFB300' },
     { name: 'Bodyweight', value: 'BODYWEIGHT', icon: '🏃', color: '#FF9800' },
     {
       name: 'Weight Lifting',
