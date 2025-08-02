@@ -157,7 +157,7 @@ const SearchBar = styled.div`
 const CategoryList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 `;
 
 const CategoryButton = styled.button`
@@ -167,7 +167,7 @@ const CategoryButton = styled.button`
   background-color: #2a2a2a;
   border: none;
   border-radius: 12px;
-  padding: 1rem;
+  padding: 0.75rem;
   color: white;
   width: 100%;
   text-align: left;
@@ -251,8 +251,8 @@ const ExerciseListContainer = styled.div`
 const ExerciseList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  max-height: 300px;
+  gap: 0.5rem;
+  max-height: 200px;
   overflow-y: auto;
   padding-right: 0.5rem;
   padding-bottom: 60px; /* Add padding to show content behind fade */
@@ -779,6 +779,7 @@ const AddWorkout = () => {
                   </g>
                 </svg>
               </BackButton>
+              {console.log(activeCategory)}
               <CategoryTitle>{activeCategory?.name}</CategoryTitle>
             </CategoryHeader>
             <ExerciseListContainer>
