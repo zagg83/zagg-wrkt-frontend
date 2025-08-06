@@ -10,6 +10,7 @@ const HeaderContainer = styled.div`
   padding: 1rem;
   border-radius: 15px;
   margin: 1rem;
+  margin-bottom: 0.3rem;
   border: 1px solid ${props => props.colors.secondary};
   box-shadow: 0 0 15px ${props => props.colors.main}40;
 `;

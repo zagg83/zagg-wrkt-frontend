@@ -1,8 +1,9 @@
 import React from 'react';
 import styled from 'styled-components';
 import Header from '../components/Header';
-import WeeklyProgress from '../components/WeeklyProgress';
+import DashboardSlider from '../components/DashboardSlider';
 import MenuGrid from '../components/MenuGrid';
+import RankProgress from '../components/RankProgress';
 
 const HomeContainer = styled.div`
   background-color: #121212;
@@ -13,7 +14,8 @@ const Home = () => {
   return (
     <HomeContainer>
       <Header />
-      <WeeklyProgress />
+      <RankProgress />
+      <DashboardSlider />
       <MenuGrid />
     </HomeContainer>
   );

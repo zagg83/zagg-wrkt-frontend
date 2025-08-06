@@ -26,7 +26,7 @@ ChartJS.register(
 const ProgressContainer = styled.div`
   background-color: #1e1e1e;
   color: white;
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: 15px;
   margin: 1rem;
   position: relative;
@@ -51,7 +51,7 @@ const ProgressContainer = styled.div`
 
 const TitleEl = styled.h2`
   font-size: 1.2rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -66,7 +66,7 @@ const TitleEl = styled.h2`
 `;
 
 const ChartWrapper = styled.div`
-  height: 200px;
+  height: 175px;
   position: relative;
   margin-top: 1rem;
 `;

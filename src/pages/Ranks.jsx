@@ -102,6 +102,83 @@ const InfoNote = styled.div`
   text-align: center;
 `;
 
+const ProgressContainer = styled.div`
+  background: #23243a;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem auto;
+  max-width: 600px;
+  border: 1px solid #333;
+`;
+
+const ProgressTitle = styled.h3`
+  color: #fff;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  text-align: center;
+`;
+
+const ProgressBar = styled.div`
+  width: 100%;
+  height: 12px;
+  background: #1a1a1a;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 0.5rem;
+`;
+
+const ProgressFill = styled.div`
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    ${props => props.color} 0%,
+    ${props => props.color}dd 100%
+  );
+  border-radius: 6px;
+  transition: width 0.8s ease;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      left: -100%;
+    }
+    100% {
+      left: 100%;
+    }
+  }
+`;
+
+const ProgressText = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #ccc;
+`;
+
+const PointsNeeded = styled.span`
+  color: ${props => props.color};
+  font-weight: 600;
+`;
+
 const Ranks = () => {
   const { user } = useUser();
   const [expanded, setExpanded] = useState(false);
@@ -116,6 +193,26 @@ const Ranks = () => {
   }
   // Fallback if userRank is not found
   if (!userRank) userRank = ranks[0];
+
+  // Calculate progress to next rank
+  const currentRankIndex = ranks.findIndex(r => r.name === userRank.name);
+  const nextRank =
+    currentRankIndex < ranks.length - 1 ? ranks[currentRankIndex + 1] : null;
+
+  let progressPercentage = 0;
+  let pointsNeeded = 0;
+  let progressText = "You've reached the highest rank! 🎉";
+
+  if (nextRank) {
+    const pointsInCurrentRank = userPoints - userRank.min;
+    const pointsNeededForNextRank = nextRank.min - userRank.min;
+    progressPercentage = Math.min(
+      (pointsInCurrentRank / pointsNeededForNextRank) * 100,
+      100
+    );
+    pointsNeeded = nextRank.min - userPoints;
+    progressText = `${pointsNeeded} points needed for ${nextRank.name}`;
+  }
 
   return (
     <Container>
@@ -187,6 +284,28 @@ const Ranks = () => {
           points)
         </PointsRange>
       </CurrentRankBox>
+
+      {nextRank && (
+        <ProgressContainer>
+          <ProgressTitle>
+            Progress to {nextRank.icon} {nextRank.name}
+          </ProgressTitle>
+          <ProgressBar>
+            <ProgressFill
+              color={nextRank.color}
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </ProgressBar>
+          <ProgressText>
+            <span>
+              {userPoints} / {nextRank.min} points
+            </span>
+            <PointsNeeded color={nextRank.color}>
+              {pointsNeeded} points needed
+            </PointsNeeded>
+          </ProgressText>
+        </ProgressContainer>
+      )}
       <h3
         style={{
           color: '#7ecfff',
