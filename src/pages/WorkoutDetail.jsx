@@ -742,6 +742,7 @@ const WorkoutDetail = () => {
       if (!res.ok) {
         throw new Error('Failed to delete workout');
       }
+      setUserState();
       navigate('/workouts');
     } catch (error) {
       console.error('Error deleting workout:', error);
@@ -880,6 +881,7 @@ const WorkoutDetail = () => {
           exercise => exercise.id !== exerciseId
         ),
       }));
+      setUserState();
     } catch (error) {
       console.error('Error removing exercise:', error);
     }
@@ -939,7 +941,7 @@ const WorkoutDetail = () => {
       if (!res.ok) {
         throw new Error('Failed to remove set');
       }
-
+      setUserState();
       // Update local state immediately for better UX
       setWorkout(prevWorkout => ({
         ...prevWorkout,

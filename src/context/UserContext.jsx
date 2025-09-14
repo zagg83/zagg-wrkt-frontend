@@ -21,7 +21,6 @@ export const UserProvider = ({ children }) => {
     if (token) {
       try {
         const decoded = jwtDecode(token);
-        console.log(decoded);
         const res = await fetch(
           `${import.meta.env.VITE_API_URL}/users/${decoded.id}`,
           {
@@ -34,6 +33,7 @@ export const UserProvider = ({ children }) => {
           throw new Error('Failed to fetch user data');
         }
         const user = await res.json();
+        console.log(user);
         if (decoded.exp * 1000 < Date.now()) {
           navigate('/login');
         } else {
