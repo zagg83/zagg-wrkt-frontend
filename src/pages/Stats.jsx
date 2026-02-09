@@ -26,7 +26,9 @@ import {
   differenceInCalendarISOWeeks,
 } from 'date-fns';
 import determineColor from '../util/determineColor';
+import { getExerciseRank } from '../util/getExerciseRank';
 import ExerciseStats from '../components/ExerciseStats';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 ChartJS.register(
   CategoryScale,
@@ -66,6 +68,115 @@ const ChartWrapper = styled.div`
   width: 100%;
   min-height: 220px;
   margin-bottom: 1rem;
+`;
+
+const TopExercisesContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: linear-gradient(120deg, #23243a 80%, #2a2a3a 100%);
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow: 0 6px 32px #0004;
+  border: 1.5px solid #2e2f4a;
+`;
+
+const ExerciseCard = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.2rem;
+  background: ${props =>
+    props.colors ? `${props.colors.main}15` : 'rgba(255, 255, 255, 0.05)'};
+  border: ${props =>
+    props.colors
+      ? `1px solid ${props.colors.main}55`
+      : '1px solid rgba(255, 255, 255, 0.1)'};
+  border-radius: 12px;
+  box-shadow: ${props =>
+    props.colors
+      ? `0 0 12px ${props.colors.main}33`
+      : '0 2px 8px rgba(0, 0, 0, 0.2)'};
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${props =>
+      props.colors
+        ? `0 4px 20px ${props.colors.main}44`
+        : '0 4px 16px rgba(0, 0, 0, 0.3)'};
+    background: ${props =>
+      props.colors ? `${props.colors.main}22` : 'rgba(255, 255, 255, 0.08)'};
+  }
+`;
+
+const ExerciseLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const RankBadge = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: ${props => props.color || '#666'};
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.9rem;
+  box-shadow: ${props => (props.color ? `0 2px 8px ${props.color}44` : 'none')};
+`;
+
+const ExerciseInfo = styled.div``;
+
+const ExerciseName = styled.div`
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: ${props => props.color || '#7ecfff'};
+  margin-bottom: 2px;
+`;
+
+const ExerciseRank = styled.div`
+  font-size: 0.85rem;
+  color: ${props => props.color || '#aaa'};
+  font-weight: 500;
+`;
+
+const ExerciseRight = styled.div`
+  text-align: right;
+`;
+
+const ExercisePoints = styled.div`
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: ${props => props.color || '#fff'};
+  margin-bottom: 2px;
+  text-shadow: ${props => (props.color ? `0 0 8px ${props.color}33` : 'none')};
+`;
+
+const ExerciseDetails = styled.div`
+  font-size: 0.9rem;
+  color: #aaa;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  align-items: center;
+`;
+
+const DetailItem = styled.span`
+  color: ${props => (props.secondary ? props.secondary : '#aaa')};
+  font-weight: 500;
+`;
+
+const NoDataMessage = styled.div`
+  text-align: center;
+  color: #aaa;
+  padding: 2rem;
+  font-size: 1rem;
 `;
 
 const StatsTitle = styled.h1`
@@ -212,6 +323,19 @@ const Stats = () => {
   const [totalSets, setTotalSets] = useState(0);
   const [totalReps, setTotalReps] = useState(0);
   const [statsTab, setStatsTab] = useState('stats'); // 'stats' or 'exercise'
+  const [bestExTemplates, setBestExTemplates] = useState(null);
+  const [defaultExercise, setDefaultExercise] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (
+      location.state?.fromWrktDetail ||
+      location.state?.switchToExerciseStats
+    ) {
+      setStatsTab('exercise');
+    }
+  }, [location.state]);
 
   const chartOptions = {
     plugins: {
@@ -383,6 +507,34 @@ const Stats = () => {
     if (categories.includes('CORE')) return 'Core';
     return null;
   }
+  useEffect(() => {
+    const fetchBestExTemplates = async () => {
+      if (!user?.id) return;
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/users/${user.id}/templates/template-stats`,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (!response.ok) throw new Error('Failed to fetch template stats');
+        const templateStats = await response.json();
+        const bestExercises = templateStats.sort((a, b) => {
+          const aPoints = a.stats[0]?.prSet?.points || 0;
+          const bPoints = b.stats[0]?.prSet?.points || 0;
+          return bPoints - aPoints;
+        });
+        setBestExTemplates(bestExercises.slice(0, 5));
+      } catch (error) {
+        console.error('Failed to fetch template stats:', error);
+      }
+    };
+    fetchBestExTemplates();
+  }, [user?.id]);
 
   useEffect(() => {
     const fetchAndAggregate = async () => {
@@ -568,30 +720,9 @@ const Stats = () => {
           >
             🏅
           </span>
-          <StatLabel>All-time points</StatLabel>
+          <StatLabel>All-time Zagg-Points</StatLabel>
           <PointsValue>{allTimePoints.toLocaleString()}</PointsValue>
         </AllTimeBox>
-        <RankPointsBox color={rankColor}>
-          <span
-            role="img"
-            aria-label="rank"
-            style={{ fontSize: '1.5rem', marginBottom: 4 }}
-          >
-            🏆
-          </span>
-          <StatLabel>
-            Rank-relevant points
-            <br />
-            <span
-              style={{ fontSize: '0.95rem', color: rankColor, opacity: 0.7 }}
-            >
-              (last 30 days)
-            </span>
-          </StatLabel>
-          <PointsValue>
-            {user?.last30DaysPoints?.toLocaleString() ?? 0}
-          </PointsValue>
-        </RankPointsBox>
       </QuickInfo>
       <ViewToggle>
         <ToggleButton
@@ -610,7 +741,7 @@ const Stats = () => {
       {statsTab === 'stats' ? (
         <>
           <Section>
-            <SectionTitle>Weekly Progress</SectionTitle>
+            <SectionTitle>Weekly Progress (xp)</SectionTitle>
             <div
               style={{
                 display: 'flex',
@@ -660,7 +791,7 @@ const Stats = () => {
             </ChartWrapper>
           </Section>
           <Section>
-            <SectionTitle>All-Time Progress</SectionTitle>
+            <SectionTitle>All-Time Progress (xp)</SectionTitle>
             <ChartWrapper style={{ height: 220 }}>
               <Line data={allPointsLineData} options={chartOptions} />
             </ChartWrapper>
@@ -829,9 +960,77 @@ const Stats = () => {
               </div>
             </div>
           </Section>
+          <Section>
+            <SectionTitle>Top 5 Exercises</SectionTitle>
+            <TopExercisesContainer>
+              {bestExTemplates && bestExTemplates.length > 0 ? (
+                bestExTemplates.map((exercise, index) => {
+                  const prSet = exercise.stats[0]?.prSet;
+                  const rankInfo = prSet ? getExerciseRank(prSet.points) : null;
+                  const colors = rankInfo
+                    ? determineColor({ rank: rankInfo.rank })
+                    : null;
+                  console.log('Exerciseeeeee:', exercise.name);
+                  return (
+                    <ExerciseCard
+                      key={index}
+                      colors={colors}
+                      onClick={() => {
+                        navigate('/stats', {
+                          state: {
+                            switchToExerciseStats: true,
+                            template: exercise || null,
+                          },
+                        });
+                      }}
+                    >
+                      <ExerciseLeft>
+                        <RankBadge color={colors ? colors.main : '#666'}>
+                          {index + 1}
+                        </RankBadge>
+                        <ExerciseInfo>
+                          <ExerciseName
+                            color={colors ? colors.main : '#7ecfff'}
+                          >
+                            {exercise.name}
+                          </ExerciseName>
+                          {rankInfo && (
+                            <ExerciseRank color={colors ? colors.main : '#aaa'}>
+                              {rankInfo.rank}
+                            </ExerciseRank>
+                          )}
+                        </ExerciseInfo>
+                      </ExerciseLeft>
+                      <ExerciseRight>
+                        <ExercisePoints color={colors ? colors.main : '#fff'}>
+                          {prSet ? `${prSet.points} ⚡` : '-'}
+                        </ExercisePoints>
+                        <ExerciseDetails>
+                          {prSet && (
+                            <>
+                              <DetailItem>{prSet.reps} reps</DetailItem>
+                              {prSet.weight > 0 && (
+                                <DetailItem
+                                  secondary={colors ? colors.secondary : '#aaa'}
+                                >
+                                  • {prSet.weight} kg
+                                </DetailItem>
+                              )}
+                            </>
+                          )}
+                        </ExerciseDetails>
+                      </ExerciseRight>
+                    </ExerciseCard>
+                  );
+                })
+              ) : (
+                <NoDataMessage>No exercise data available yet.</NoDataMessage>
+              )}
+            </TopExercisesContainer>
+          </Section>
         </>
       ) : (
-        <ExerciseStats />
+        <ExerciseStats defaultEx={location.state?.template || null} />
       )}
     </Container>
   );

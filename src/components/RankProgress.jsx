@@ -102,8 +102,8 @@ const NextRankIcon = styled.span`
 
 const RankProgress = () => {
   const { user } = useUser();
-  const userPoints = user?.last30DaysPoints ?? 0;
-
+  const userPoints = user?.rating ?? 0;
+  console.log(user);
   // Find current rank
   let userRank = ranks.find(r => userPoints >= r.min && userPoints <= r.max);
   if (user?.rank) {

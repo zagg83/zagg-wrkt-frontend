@@ -15,6 +15,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { getExerciseRank } from '../util/getExerciseRank';
 
 const Container = styled.div`
   background: #23243a;
@@ -197,6 +198,67 @@ const ChartWrapper = styled.div`
   margin-bottom: 1rem;
 `;
 
+const PRDetailsCard = styled.div`
+  background: #23243a;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 12px;
+  color: #fff;
+  box-shadow: 0 2px 10px #0002;
+  text-align: center;
+  border: 1px solid #2a2a2a;
+  transition: all 0.3s ease;
+  animation: fadeInScale 0.4s ease-out;
+
+  &:hover {
+    box-shadow: 0 4px 20px #0004;
+    transform: translateY(-2px);
+  }
+
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+`;
+
+const PRDetailsTitle = styled.div`
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 6px;
+  color: #7ecfff;
+  letter-spacing: 0.5px;
+`;
+
+const PRDetailsRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 14px;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid #2a2a2a;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+`;
+
+const PRDetailsLabel = styled.span`
+  color: #aaa;
+  font-weight: 500;
+`;
+
+const PRDetailsValue = styled.span`
+  font-weight: 600;
+  color: #fff;
+`;
+
 const chartOptions = {
   plugins: {
     legend: { labels: { color: 'white' } },
@@ -223,7 +285,9 @@ const chartOptions = {
 
 const DEFAULT_EXERCISE_NAME = 'Barbell Bench Press';
 
-const ExerciseStats = () => {
+const ExerciseStats = ({ defaultEx }) => {
+  const [prProgressChart, setPrProgressChart] = useState(null);
+  const [selectedPrIndex, setSelectedPrIndex] = useState(null);
   const [search, setSearch] = useState('');
   const [exercises, setExercises] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
@@ -235,7 +299,20 @@ const ExerciseStats = () => {
     datasets: [],
   });
   const [error, setError] = useState('');
+  const [prSetInfo, setPrSetInfo] = useState(null);
+  // On mount, fetch all exercises and pre-select default
 
+  useEffect(() => {
+    async function init() {
+      await fetchExercises();
+      console.log('default ex:', defaultEx);
+      if (defaultEx) {
+        setActiveExercise(defaultEx);
+        await fetchStats(defaultEx);
+      }
+    }
+    init();
+  }, []);
   // Fetch exercises by category or search
   const fetchExercises = async (category, query = null) => {
     setLoading(true);
@@ -277,6 +354,8 @@ const ExerciseStats = () => {
   const fetchStats = async exercise => {
     setLoading(true);
     setError('');
+    setPrSetInfo(null);
+    console.log('exercise fro stats:', exercise);
     try {
       const token = localStorage.getItem('token');
       const userObj = jwtDecode(token);
@@ -297,8 +376,61 @@ const ExerciseStats = () => {
           set.exercise.template &&
           set.exercise.template.id === exercise.id
       );
-      console.log('filteredSets');
-      console.log(filteredSets);
+      console.log('exercise:', exercise);
+      // Fetch PR set if available
+      const prSetId = exercise?.stats?.[0]?.prSetId;
+      if (prSetId) {
+        try {
+          const prSetRes = await fetch(
+            `${import.meta.env.VITE_API_URL}/users/${userObj.id}/sets/${prSetId}`,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          if (!prSetRes.ok) throw new Error('Failed to fetch PR set');
+          const prSet = await prSetRes.json();
+          setPrSetInfo(prSet);
+        } catch (error) {
+          setPrSetInfo(null);
+          console.error('Error fetching PR set:', error);
+        }
+        const prSetsOverTime = allSets.filter(set => {
+          if (!set.exercise || !set.exercise.template) return false;
+          const isSameExercise = set.exercise.template.id === exercise.id;
+          return set.isPR && isSameExercise;
+        });
+        // Prepare PR progress chart data for single chart
+        if (prSetsOverTime.length > 0) {
+          const prLabels = prSetsOverTime.map(set =>
+            format(new Date(set.createdAt), 'M/d/yy')
+          );
+          setPrProgressChart({
+            labels: prLabels,
+            datasets: [
+              {
+                label: 'PR Points',
+                data: prSetsOverTime.map(set => set.points),
+                borderColor: '#7ecfff',
+                backgroundColor: '#7ecfff33',
+                tension: 0.3,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                yAxisID: 'y',
+              },
+            ],
+            prSets: prSetsOverTime,
+          });
+        } else {
+          setPrProgressChart(null);
+        }
+        // Show latest PR as default
+        setSelectedPrIndex(
+          prSetsOverTime.length > 0 ? prSetsOverTime.length - 1 : null
+        );
+      }
       // Aggregate stats
       let totalSets = filteredSets.length;
       let totalReps = 0;
@@ -360,16 +492,11 @@ const ExerciseStats = () => {
     } catch (err) {
       setError('Could not load stats for this exercise');
       setStats(null);
+      setPrSetInfo(null);
     } finally {
       setLoading(false);
     }
   };
-
-  // On mount, fetch all exercises and pre-select default
-  useEffect(() => {
-    fetchExercises();
-    // eslint-disable-next-line
-  }, []);
 
   // Handle category click
   const handleCategoryClick = category => {
@@ -399,6 +526,7 @@ const ExerciseStats = () => {
       fetchExercises();
     }
   };
+  const prRank = prSetInfo ? getExerciseRank(prSetInfo.points) : null;
 
   return (
     <Container>
@@ -462,6 +590,135 @@ const ExerciseStats = () => {
         >
           {activeExercise ? activeExercise.name : DEFAULT_EXERCISE_NAME}
         </Header>
+        <div
+          style={{
+            background: prRank
+              ? `${prRank.color}15` // faint tint
+              : '#1e1e2e',
+            borderRadius: 14,
+            padding: '1.2rem 1.5rem',
+            marginBottom: 24,
+            boxShadow: prRank
+              ? `0 0 18px ${prRank.color}55`
+              : '0 2px 10px #0002',
+            border: prRank
+              ? `1px solid ${prRank.color}88`
+              : '1px solid #2a2a2a',
+            color: '#fff',
+            transition: 'all 0.3s ease',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '1.1rem',
+              marginBottom: 6,
+              textAlign: 'center',
+              fontWeight: 600,
+              letterSpacing: 0.5,
+              color: prRank ? prRank.color : '#7ecfff',
+              textShadow: prRank ? `0 0 10px ${prRank.color}66` : 'none',
+            }}
+          >
+            {prRank ? `${prRank.rank} PR` : 'Personal Record Set'}
+          </div>
+          {!prSetInfo ? (
+            <div style={{ color: '#aaa', textAlign: 'center' }}>
+              No PR set recorded yet for this exercise.
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  marginTop: 12,
+                }}
+              >
+                <div
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    background: '#23243a',
+                    border: '1px solid #2a2a2a',
+                    borderRadius: 12,
+                    padding: '10px 6px',
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: '#aaa' }}>Reps</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>
+                    {prSetInfo.reps ?? '-'}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    background: '#23243a',
+                    border: '1px solid #2a2a2a',
+                    borderRadius: 12,
+                    padding: '10px 6px',
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: '#aaa' }}>Weight</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>
+                    {typeof prSetInfo.weight === 'number'
+                      ? prSetInfo.weight === 0
+                        ? 'Bodyweight'
+                        : `${prSetInfo.weight} kg`
+                      : '-'}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    background: '#7ecfff22',
+                    border: '1px solid #7ecfff55',
+                    borderRadius: 12,
+                    padding: '10px 6px',
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: '#aaa' }}>Points</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }}>
+                    {prSetInfo.points ?? '-'}
+                  </div>
+                </div>
+              </div>
+              <div
+                style={{
+                  height: 1,
+                  background: '#2a2a2a',
+                  margin: '12px 0',
+                }}
+              />
+              <div style={{ fontSize: 14 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: 6,
+                  }}
+                >
+                  <div style={{ color: '#aaa' }}>Workout</div>
+                  <div style={{ fontWeight: 500 }}>
+                    {prSetInfo.exercise?.workout?.name ?? '-'}
+                  </div>
+                </div>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between' }}
+                >
+                  <div style={{ color: '#aaa' }}>Date</div>
+                  <div style={{ fontWeight: 500 }}>
+                    {prSetInfo.createdAt
+                      ? new Date(prSetInfo.createdAt).toLocaleDateString()
+                      : '-'}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
         {stats ? (
           <>
             <StatGrid>
@@ -474,9 +731,95 @@ const ExerciseStats = () => {
             </StatGrid>
             <Section>
               <SectionTitle>All-Time Progress</SectionTitle>
-
               <ChartWrapper style={{ height: 220 }}>
-                <Line data={chartData} options={chartOptions} />
+                <Line
+                  data={prProgressChart || chartData}
+                  options={{
+                    ...chartOptions,
+                    onClick: (event, elements) => {
+                      if (elements && elements.length > 0 && prProgressChart) {
+                        setSelectedPrIndex(elements[0].index);
+                      }
+                    },
+                    scales: {
+                      ...chartOptions.scales,
+                      y: {
+                        ...chartOptions.scales.y,
+                        position: 'left',
+                        title: { display: true, text: 'Points' },
+                      },
+                    },
+                  }}
+                />
+              </ChartWrapper>
+              {selectedPrIndex !== null &&
+                prProgressChart &&
+                prProgressChart.prSets && (
+                  <PRDetailsCard key={selectedPrIndex}>
+                    <PRDetailsTitle>PR Details</PRDetailsTitle>
+                    <PRDetailsRow>
+                      <PRDetailsLabel>Date</PRDetailsLabel>
+                      <PRDetailsValue>
+                        {prProgressChart.labels[selectedPrIndex]}
+                      </PRDetailsValue>
+                    </PRDetailsRow>
+                    <PRDetailsRow>
+                      <PRDetailsLabel>Points</PRDetailsLabel>
+                      <PRDetailsValue>
+                        {prProgressChart.prSets[selectedPrIndex].points}
+                      </PRDetailsValue>
+                    </PRDetailsRow>
+                    <PRDetailsRow>
+                      <PRDetailsLabel>Reps</PRDetailsLabel>
+                      <PRDetailsValue>
+                        {prProgressChart.prSets[selectedPrIndex].reps}
+                      </PRDetailsValue>
+                    </PRDetailsRow>
+                    <PRDetailsRow>
+                      <PRDetailsLabel>Weight</PRDetailsLabel>
+                      <PRDetailsValue>
+                        {typeof prProgressChart.prSets[selectedPrIndex]
+                          .weight === 'number'
+                          ? prProgressChart.prSets[selectedPrIndex].weight === 0
+                            ? 'Bodyweight'
+                            : `${prProgressChart.prSets[selectedPrIndex].weight} kg`
+                          : '-'}
+                      </PRDetailsValue>
+                    </PRDetailsRow>
+                  </PRDetailsCard>
+                )}
+            </Section>
+            <Section>
+              <SectionTitle>All Sets Over Time</SectionTitle>
+              <ChartWrapper style={{ height: 220 }}>
+                <Line
+                  data={chartData}
+                  options={{
+                    ...chartOptions,
+                    interaction: {
+                      intersect: false,
+                      mode: 'index',
+                    },
+                    onHover: (event, activeElements) => {
+                      event.native.target.style.cursor = 'default';
+                    },
+                    scales: {
+                      ...chartOptions.scales,
+                      y: {
+                        ...chartOptions.scales.y,
+                        position: 'left',
+                        title: {
+                          display: true,
+                          text: activeExercise?.categories?.includes(
+                            'BODYWEIGHT'
+                          )
+                            ? 'Reps'
+                            : 'Points',
+                        },
+                      },
+                    },
+                  }}
+                />
               </ChartWrapper>
             </Section>
           </>

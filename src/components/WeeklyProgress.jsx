@@ -267,7 +267,7 @@ const WeeklyProgress = () => {
 
   return (
     <ProgressContainer colors={colors}>
-      <TitleEl colors={colors}>Points per Workout</TitleEl>
+      <TitleEl colors={colors}>XP per Workout</TitleEl>
       <div
         style={{
           display: 'flex',

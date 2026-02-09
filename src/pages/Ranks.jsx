@@ -182,8 +182,7 @@ const PointsNeeded = styled.span`
 const Ranks = () => {
   const { user } = useUser();
   const [expanded, setExpanded] = useState(false);
-  // Use user.last30DaysPoints or fallback to 0
-  const userPoints = user?.last30DaysPoints ?? 0;
+  const userPoints = user?.rating ?? 0;
   // Try to get rank from user.rank, else calculate from points
   let userRank = ranks.find(r => userPoints >= r.min && userPoints <= r.max);
   if (user?.rank) {
@@ -220,22 +219,31 @@ const Ranks = () => {
       <InfoNote>
         <b>How your rank works:</b>
         <br />
-        Your rank is based on the <b>points you earned in the last 30 days</b>.
+        Your rank is based on your <b>weekly training performance</b>.
         {expanded ? (
           <>
             <br />
             <br />
-            Only your recent activity counts toward your rank—just like the
-            rolling ranking system in professional tennis.
+            Every week, your workouts are analyzed and turned into a performance
+            score. This score is based on three key factors:
+            <br />
+            <br />
+            <b>Training Load</b> – How much quality work you completed
+            <br />
+            <b>Consistency</b> – How regularly you trained compared to previous
+            weeks
+            <br />
+            <b>Personal Records</b> – New PRs give bonus impact
             <br />
             <br />
             <b>
-              As time passes, points you earned more than a month ago will
-              automatically drop out of your total.
+              Your weekly score adjusts your rating, which determines your rank
+              tier.
             </b>{' '}
-            To maintain or improve your rank, keep working out and earning new
-            points! This system rewards consistent effort and helps you track
-            your current fitness momentum, not just your all-time history.
+            Train consistently and push your limits to climb higher. If your
+            activity drops or you skip training for a while, your rank can go
+            down — because it reflects your <b>current form</b>, not just past
+            achievements.
             <br />
             <br />
             <button

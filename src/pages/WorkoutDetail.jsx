@@ -4,6 +4,8 @@ import styled, { keyframes } from 'styled-components';
 import { useUser } from '../context/UserContext';
 import determineColor from '../util/determineColor';
 import { jwtDecode } from 'jwt-decode';
+import PRPopup from '../components/PRPopup';
+import PRSetInfo from '../components/PRSetInfo';
 
 const float = keyframes`
   0% {
@@ -106,6 +108,7 @@ const ExerciseName = styled.h3`
   margin: 0 0 1rem 0;
   font-size: 1.2rem;
   width: 80%;
+  display: flex;
 `;
 
 const SetList = styled.div`
@@ -586,6 +589,37 @@ const LastWorkoutButton = styled.button`
   }
 `;
 
+export const InfoButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+
+  border: 1px solid #50c87888;
+  background: #50c87822;
+  color: #50c878;
+
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #50c87833;
+    box-shadow: 0 0 6px #50c87866;
+    transform: scale(1.08);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
 const WorkoutDetail = () => {
   const { workoutId } = useParams();
   const { user, setUserState } = useUser();
@@ -601,12 +635,18 @@ const WorkoutDetail = () => {
   const [activeCategory, setActiveCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const modalRef = useRef(null);
-  const [pendingChanges, setPendingChanges] = useState(new Set());
+  const [pendingChanges, setPendingChanges] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   // Track which exercise is in comparison mode and its previous data
   const [comparisonExerciseId, setComparisonExerciseId] = useState(null);
   const [comparisonExerciseData, setComparisonExerciseData] = useState(null);
-
+  const [newPr, setNewPr] = useState(null);
+  const pendingRef = useRef(pendingChanges);
+  const [prSetInfo, setPrSetInfo] = useState(null);
+  // so that useEffect that handles component unmount has access to pendingChanges without having to put [pendingChages] in dep arr
+  useEffect(() => {
+    pendingRef.current = pendingChanges;
+  }, [pendingChanges]);
   const categories = [
     {
       name: 'Push',
@@ -680,12 +720,13 @@ const WorkoutDetail = () => {
 
   // Save all pending changes to the database
   const savePendingChanges = useCallback(async () => {
-    if (pendingChanges.size === 0 || isSaving) return;
+    console.log('SAVING pending changes');
+    if (pendingRef.current.length === 0 || isSaving) return;
 
     setIsSaving(true);
     try {
       const token = localStorage.getItem('token');
-      const promises = Array.from(pendingChanges).map(async setId => {
+      const promises = pendingChanges.map(async setId => {
         // Find the set data from the current workout state
         let setData = null;
         workout.exercises.forEach(exercise => {
@@ -711,14 +752,17 @@ const WorkoutDetail = () => {
             }),
           }
         );
-
+        const set = await res.json();
+        if (set.isNewPr) {
+          setTimeout(() => setNewPr(set), 500);
+        }
         if (!res.ok) {
           throw new Error(`Failed to update set ${setId}`);
         }
       });
 
       await Promise.all(promises);
-      setPendingChanges(new Set()); // Clear pending changes after successful save
+      setPendingChanges([]); // Clear pending changes after successful save
     } catch (error) {
       console.error('Error saving pending changes:', error);
     } finally {
@@ -823,7 +867,6 @@ const WorkoutDetail = () => {
 
   const handleExerciseSelect = async exercise => {
     try {
-      console.log(exercise);
       const token = localStorage.getItem('token');
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/users/${user.id}/exercises`,
@@ -968,7 +1011,7 @@ const WorkoutDetail = () => {
         cleanValue = value.slice(1);
       }
       cleanValue = parseInt(cleanValue) || 0;
-
+      console.log(field, value);
       // Update local state immediately for better UX
       setWorkout(prevWorkout => ({
         ...prevWorkout,
@@ -995,10 +1038,14 @@ const WorkoutDetail = () => {
           }),
         }
       );
+      const updatetSet = await res.json();
+      if (updatetSet.isNewPr) {
+        setTimeout(() => setNewPr(updatetSet), 500);
+      }
+
       if (!res.ok) {
         throw new Error('Failed to update set');
       }
-      const updatetSet = await res.json();
       // Now with new points too
       setWorkout(prevWorkout => ({
         ...prevWorkout,
@@ -1009,13 +1056,8 @@ const WorkoutDetail = () => {
           ),
         })),
       }));
-
       // Remove from pending changes after successful save
-      setPendingChanges(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(setId);
-        return newSet;
-      });
+      setPendingChanges(prev => prev.filter(id => id !== setId));
       setUserState();
     } catch (error) {
       console.error('Error updating set:', error);
@@ -1029,7 +1071,41 @@ const WorkoutDetail = () => {
       setShowExercisePicker(false);
     }
   };
+  const handleInfoBtnClick = async exId => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/users/${user.id}/exercises/${exId}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const exerciseData = await res.json();
+      if (exerciseData.template.stats.length === 0) {
+        // no stats available
+        return;
+      }
+      let prSet = await fetch(
+        `${import.meta.env.VITE_API_URL}/users/${user.id}/sets/${exerciseData.template.stats[0].prSetId}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      prSet = await prSet.json();
 
+      setPrSetInfo(prSet);
+    } catch (error) {
+      setPrSetInfo(null);
+      console.error('Error fetching exercise info:', error);
+    }
+    console.log(exerciseData, prSet);
+  };
   useEffect(() => {
     if (showExercisePicker) {
       document.addEventListener('mousedown', handleClickOutside);
@@ -1042,7 +1118,7 @@ const WorkoutDetail = () => {
   // Save pending changes when component unmounts
   useEffect(() => {
     const handleBeforeUnload = e => {
-      if (pendingChanges.size > 0) {
+      if (pendingRef.current.length > 0) {
         // Try to save synchronously before unload
         savePendingChanges();
         // Show a warning to the user
@@ -1056,13 +1132,16 @@ const WorkoutDetail = () => {
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
+      // runs also on dependency change
       window.removeEventListener('beforeunload', handleBeforeUnload);
       // Save any remaining changes when component unmounts
-      if (pendingChanges.size > 0) {
+      console.log(pendingRef.current);
+
+      if (pendingRef.current.length > 0) {
         savePendingChanges();
       }
     };
-  }, [pendingChanges, savePendingChanges]);
+  }, []);
 
   // Toggle comparison mode for an exercise and fetch previous data
   async function handleShowLastWorkout(templateId, currExId) {
@@ -1094,7 +1173,22 @@ const WorkoutDetail = () => {
   };
 
   return (
-    <Container>
+    <Container style={{ position: 'relative' }}>
+      {newPr !== null && !newPr.isFirstSet && (
+        <PRPopup
+          open={newPr !== null}
+          onClose={async () => {
+            setNewPr(null);
+            await fetchWorkout();
+          }}
+          exercise={newPr.template}
+          points={newPr.points}
+        />
+      )}
+      {console.log('pr set ', prSetInfo)}
+      {prSetInfo && (
+        <PRSetInfo prSet={prSetInfo} onClose={() => setPrSetInfo(null)} />
+      )}
       <BackgroundEffect>
         {particles.map(particle => (
           <Particle
@@ -1109,7 +1203,7 @@ const WorkoutDetail = () => {
       <ContentWrapper>
         <Header colors={colors}>
           <WorkoutTitle>{workout.name}</WorkoutTitle>
-          {pendingChanges.size > 0 && (
+          {pendingChanges.length > 0 && (
             <div
               style={{
                 position: 'absolute',
@@ -1126,7 +1220,7 @@ const WorkoutDetail = () => {
             >
               {isSaving
                 ? 'Saving...'
-                : `${pendingChanges.size} change${pendingChanges.size > 1 ? 's' : ''} pending`}
+                : `${pendingChanges.length} change${pendingChanges.length > 1 ? 's' : ''} pending`}
             </div>
           )}
           <RemoveExerciseButton onClick={handleDeleteWorkout}>
@@ -1187,6 +1281,17 @@ const WorkoutDetail = () => {
                     </g>
                   </svg>
                 </LastWorkoutButton>
+                <InfoButton onClick={() => handleInfoBtnClick(exercise.id)}>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 4a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm2 12h-4v-2h1v-4h-1v-2h3v6h1v2z" />
+                  </svg>
+                </InfoButton>
               </ExerciseName>
               <SetList>
                 <SetRow
@@ -1204,195 +1309,218 @@ const WorkoutDetail = () => {
                   <Label>Weight (kg)</Label>
                   <Label></Label>
                 </SetRow>
-
-                {exercise.sets.map((set, index) => (
-                  <SetUnit key={index}>
-                    <SetRow>
-                      <Label>{index + 1}</Label>
-                      {comparisonExerciseId === exercise.id ? (
-                        <>
-                          <div
-                            style={{
-                              background: '#222',
-                              borderRadius: '8px',
-                              height: '2.2em',
-                              width: '100%',
-                              margin: '0 0.5em',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#888',
-                              fontSize: '1em',
-                              fontStyle: 'italic',
-                            }}
-                          >
-                            {comparisonExerciseData &&
-                            comparisonExerciseData.sets &&
-                            comparisonExerciseData.sets[index] &&
-                            typeof comparisonExerciseData.sets[index].reps ===
-                              'number'
-                              ? comparisonExerciseData.sets[index].reps
-                              : '--'}
-                          </div>
-                          <div
-                            style={{
-                              background: '#222',
-                              borderRadius: '8px',
-                              height: '2.2em',
-                              width: '100%',
-                              margin: '0 0.5em',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#888',
-                              fontSize: '1em',
-                              fontStyle: 'italic',
-                            }}
-                          >
-                            {comparisonExerciseData &&
-                            comparisonExerciseData.sets &&
-                            comparisonExerciseData.sets[index] &&
-                            typeof comparisonExerciseData.sets[index].weight ===
-                              'number'
-                              ? comparisonExerciseData.sets[index].weight
-                              : '--'}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <Input
-                            type="number"
-                            placeholder="Reps"
-                            value={set.reps || ''}
-                            onChange={e => {
-                              setWorkout(prevWorkout => ({
-                                ...prevWorkout,
-                                exercises: prevWorkout.exercises.map(ex => ({
-                                  ...ex,
-                                  sets: ex.sets.map(s =>
-                                    s.id === set.id
-                                      ? {
-                                          ...s,
-                                          reps: parseInt(e.target.value) || 0,
-                                        }
-                                      : s
-                                  ),
-                                })),
-                              }));
-                              setPendingChanges(
-                                prev => new Set([...prev, set.id])
-                              );
-                            }}
-                            onBlur={e =>
-                              handleInputBlur(set.id, 'reps', e.target.value)
+                {exercise.sets.map((set, index) => {
+                  const isCurrPr = set.userExerciseStats?.prSetId === set.id;
+                  return (
+                    <SetUnit
+                      key={set.id}
+                      style={
+                        isCurrPr
+                          ? {
+                              border: '2px solid #50C878',
+                              background: '#50C87822',
+                              boxShadow: '0 0 8px #50C87855',
                             }
-                            colors={colors}
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Weight"
-                            value={set.weight || ''}
-                            onChange={e => {
-                              setWorkout(prevWorkout => ({
-                                ...prevWorkout,
-                                exercises: prevWorkout.exercises.map(ex => ({
-                                  ...ex,
-                                  sets: ex.sets.map(s =>
-                                    s.id === set.id
-                                      ? {
-                                          ...s,
-                                          weight: parseInt(e.target.value) || 0,
-                                        }
-                                      : s
-                                  ),
-                                })),
-                              }));
-                              setPendingChanges(
-                                prev => new Set([...prev, set.id])
-                              );
-                            }}
-                            onBlur={e =>
-                              handleInputBlur(set.id, 'weight', e.target.value)
-                            }
-                            colors={colors}
-                          />
-                        </>
-                      )}
-                      <RemoveSetButton
-                        onClick={e => {
-                          e.stopPropagation();
-                          handleRemoveSet(exercise.id, set.id);
-                        }}
-                      >
-                        ×
-                      </RemoveSetButton>
-                    </SetRow>
-                    {/* Show points badge for old set in comparison mode */}
-                    {comparisonExerciseId === exercise.id ? (
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          marginTop: '0.2em',
-                        }}
-                      >
-                        <PointsBadge
-                          style={{
-                            background: '#444', // darker gray background
-                            color: '#bbb', // muted text color
-                            border: '1px solid #666',
-                            opacity: 0.85,
+                          : {}
+                      }
+                    >
+                      <SetRow>
+                        <Label>{index + 1}</Label>
+                        {comparisonExerciseId === exercise.id ? (
+                          <>
+                            <div
+                              style={{
+                                background: '#222',
+                                borderRadius: '8px',
+                                height: '2.2em',
+                                width: '100%',
+                                margin: '0 0.5em',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#888',
+                                fontSize: '1em',
+                                fontStyle: 'italic',
+                              }}
+                            >
+                              {comparisonExerciseData &&
+                              comparisonExerciseData.sets &&
+                              comparisonExerciseData.sets[index] &&
+                              typeof comparisonExerciseData.sets[index].reps ===
+                                'number'
+                                ? comparisonExerciseData.sets[index].reps
+                                : '--'}
+                            </div>
+                            <div
+                              style={{
+                                background: '#222',
+                                borderRadius: '8px',
+                                height: '2.2em',
+                                width: '100%',
+                                margin: '0 0.5em',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#888',
+                                fontSize: '1em',
+                                fontStyle: 'italic',
+                              }}
+                            >
+                              {comparisonExerciseData &&
+                              comparisonExerciseData.sets &&
+                              comparisonExerciseData.sets[index] &&
+                              typeof comparisonExerciseData.sets[index]
+                                .weight === 'number'
+                                ? comparisonExerciseData.sets[index].weight
+                                : '--'}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Input
+                              type="number"
+                              placeholder="Reps"
+                              value={set.reps || ''}
+                              onChange={e => {
+                                console.log(pendingChanges);
+                                setWorkout(prevWorkout => ({
+                                  ...prevWorkout,
+                                  exercises: prevWorkout.exercises.map(ex => ({
+                                    ...ex,
+                                    sets: ex.sets.map(s =>
+                                      s.id === set.id
+                                        ? {
+                                            ...s,
+                                            reps: parseInt(e.target.value) || 0,
+                                          }
+                                        : s
+                                    ),
+                                  })),
+                                }));
+                                setPendingChanges(prev =>
+                                  prev.includes(set.id)
+                                    ? prev
+                                    : [...prev, set.id]
+                                );
+                              }}
+                              onBlur={e =>
+                                handleInputBlur(set.id, 'reps', e.target.value)
+                              }
+                              colors={colors}
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Weight"
+                              value={set.weight || ''}
+                              onChange={e => {
+                                setWorkout(prevWorkout => ({
+                                  ...prevWorkout,
+                                  exercises: prevWorkout.exercises.map(ex => ({
+                                    ...ex,
+                                    sets: ex.sets.map(s =>
+                                      s.id === set.id
+                                        ? {
+                                            ...s,
+                                            weight:
+                                              parseInt(e.target.value) || 0,
+                                          }
+                                        : s
+                                    ),
+                                  })),
+                                }));
+                                setPendingChanges(prev =>
+                                  prev.includes(set.id)
+                                    ? prev
+                                    : [...prev, set.id]
+                                );
+                              }}
+                              onBlur={e =>
+                                handleInputBlur(
+                                  set.id,
+                                  'weight',
+                                  e.target.value
+                                )
+                              }
+                              colors={colors}
+                            />
+                          </>
+                        )}
+                        <RemoveSetButton
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleRemoveSet(exercise.id, set.id);
                           }}
                         >
-                          <span
-                            role="img"
-                            aria-label="points"
+                          ×
+                        </RemoveSetButton>
+                      </SetRow>
+                      {/* Show points badge for old set in comparison mode */}
+                      {comparisonExerciseId === exercise.id ? (
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            marginTop: '0.2em',
+                          }}
+                        >
+                          <PointsBadge
                             style={{
-                              marginRight: '0.3em',
-                              fontSize: '1em',
-                              verticalAlign: 'middle',
+                              background: '#444', // darker gray background
+                              color: '#bbb', // muted text color
+                              border: '1px solid #666',
+                              opacity: 0.85,
                             }}
                           >
-                            🏆
-                          </span>
-                          {comparisonExerciseData &&
-                          comparisonExerciseData.sets &&
-                          comparisonExerciseData.sets[index] &&
-                          comparisonExerciseData.sets[index].points !==
-                            undefined &&
-                          comparisonExerciseData.sets[index].points !== null
-                            ? `+${comparisonExerciseData.sets[index].points}`
-                            : '+0'}
-                        </PointsBadge>
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'center',
-                          marginTop: '0.2em',
-                        }}
-                      >
-                        <PointsBadge>
-                          <span
-                            role="img"
-                            aria-label="points"
-                            style={{
-                              marginRight: '0.3em',
-                              fontSize: '1em',
-                              verticalAlign: 'middle',
-                            }}
-                          >
-                            🏆
-                          </span>
-                          {set.points !== undefined && set.points !== null
-                            ? `+${set.points}`
-                            : '+0'}
-                        </PointsBadge>
-                      </div>
-                    )}
-                  </SetUnit>
-                ))}
+                            <span
+                              role="img"
+                              aria-label="points"
+                              style={{
+                                marginRight: '0.3em',
+                                fontSize: '1em',
+                                verticalAlign: 'middle',
+                              }}
+                            >
+                              ⚡
+                            </span>
+                            {comparisonExerciseData &&
+                            comparisonExerciseData.sets &&
+                            comparisonExerciseData.sets[index] &&
+                            comparisonExerciseData.sets[index].points !==
+                              undefined &&
+                            comparisonExerciseData.sets[index].points !== null
+                              ? `+${comparisonExerciseData.sets[index].points}`
+                              : '+0'}
+                          </PointsBadge>
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            marginTop: '0.2em',
+                          }}
+                        >
+                          <PointsBadge>
+                            <span
+                              role="img"
+                              aria-label="points"
+                              style={{
+                                marginRight: '0.3em',
+                                fontSize: '1em',
+                                verticalAlign: 'middle',
+                              }}
+                            >
+                              ⚡
+                            </span>
+                            {set.points !== undefined && set.points !== null
+                              ? `+${set.points}`
+                              : '+0'}
+                          </PointsBadge>
+                        </div>
+                      )}
+                    </SetUnit>
+                  );
+                })}
                 <AddSetButton
                   onClick={() => handleAddSet(exercise.id)}
                   colors={colors}
