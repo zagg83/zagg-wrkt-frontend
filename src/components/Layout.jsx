@@ -157,7 +157,7 @@ const BrandText = styled.span`
   letter-spacing: 1px;
   font-family: 'Comic Relief', 'Montserrat', 'Poppins', Arial, sans-serif;
 
-  @media (max-width: 350px) {
+  @media (max-width: 450px) {
     display: none;
   }
 `;
