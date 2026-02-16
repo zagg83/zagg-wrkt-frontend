@@ -148,7 +148,7 @@ const Signup = () => {
         body: JSON.stringify({ username: name, email, password }),
       });
       const data = await response.json();
-      if (!response.ok || !data.id) {
+      if (!response.ok || !data.success) {
         setError(data.error || 'Signup failed');
         setLoading(false);
         return;
