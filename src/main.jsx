@@ -78,18 +78,6 @@ const router = createBrowserRouter([
         path: '/settings',
         element: suspense(Settings),
       },
-      {
-        path: '/privacy',
-        element: suspense(PrivacyPolicy),
-      },
-      {
-        path: '/terms',
-        element: suspense(TermsAndConditions),
-      },
-      {
-        path: '/acceptable-use',
-        element: suspense(AcceptableUsePolicy),
-      },
     ],
   },
   {
@@ -111,6 +99,18 @@ const router = createBrowserRouter([
   {
     path: 'resend-verification',
     element: suspense(ResendVerify),
+  },
+  {
+    path: '/privacy',
+    element: suspense(PrivacyPolicy),
+  },
+  {
+    path: '/terms',
+    element: suspense(TermsAndConditions),
+  },
+  {
+    path: '/acceptable-use',
+    element: suspense(AcceptableUsePolicy),
   },
 ]);
 
